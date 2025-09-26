@@ -261,3 +261,4 @@ gradle-app.setting
 *.backup
 *.temp
 .!*
+private-extensions/
