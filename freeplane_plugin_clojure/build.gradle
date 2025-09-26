@@ -1,0 +1,57 @@
+dependencies {
+    implementation project(':freeplane')
+    implementation project(':freeplane_plugin_script')
+    implementation project(':freeplane_plugin_jsyntaxpane')
+    
+    // Clojure dependencies
+    lib 'org.clojure:clojure:1.10.3'
+    lib 'org.clojure:tools.namespace:1.3.0'
+    lib 'org.clojure:java.classpath:1.0.0'
+    lib 'org.clojure:tools.logging:1.2.4'
+    lib 'org.clojure:data.json:2.4.0'
+}
+
+tasks.withType(JavaCompile) {
+    if (JavaVersion.current().isJava8Compatible())
+        options.compilerArgs << '-parameters'
+}
+
+ext.bundleImports = 'org.freeplane.plugin.script.*, org.freeplane.plugin.jsyntaxpane.*'
+
+ext.bundleExports = """\
+             org.freeplane.plugin.clojure,
+             org.freeplane.plugin.clojure.proxy
+             """
+
+task copyClojureScripts(type: Copy) {
+    from('src/main/resources/org/freeplane/plugin/clojure/clojure/') {
+        include('*.clj')
+    }
+    into(globalBin + '/scripts/clojure')
+}
+
+javadoc {
+    enabled = true
+
+    title = "Freeplane Clojure API ${project.version}"
+
+    source = fileTree(dir: 'src/main/java')
+      .include('**/ClojureScriptBaseClass.java')
+      .include('**/ClojureStaticImports.java') +
+        fileTree(dir: '../freeplane_api/src/main/java')
+          .include('**/api/*.java') +
+        fileTree(dir: '../freeplane/src/main/java')
+          .include('**/UITools.java')
+          .include('**/TextUtils.java')
+          .include('**/FreeplaneVersion.java')
+          .include('**/HtmlUtils.java')
+          .include('**/LogUtils.java')
+          .include('**/MenuUtils.java') +
+        fileTree(dir: '../freeplane_framework/src/main/java')
+          .include('**/Launcher.java')
+
+    destinationDir = new File(globalBin + '/doc/api/clojure/')
+}
+
+build.dependsOn copyClojureScripts
+build.dependsOn javadoc

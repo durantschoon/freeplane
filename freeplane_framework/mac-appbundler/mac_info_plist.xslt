@@ -43,7 +43,13 @@
 	            <string>freeplane</string>
 	        </array>
 	    </dict>
-	</array>    
+	</array>
+	
+	<!-- Override CFBundleName for custom application name -->
+	<key>CFBundleName</key>
+	<string>DurantsFreeplane</string>
+	<key>CFBundleDisplayName</key>
+	<string>DurantsFreeplane</string>
   </xsl:copy>
 </xsl:template>
 
