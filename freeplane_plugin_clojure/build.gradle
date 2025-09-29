@@ -27,7 +27,7 @@ task copyClojureScripts(type: Copy) {
     from('src/main/resources/org/freeplane/plugin/clojure/clojure/') {
         include('*.clj')
     }
-    into(globalBin + '/scripts/clojure')
+    into(globalBin + '/scripts')
 }
 
 javadoc {

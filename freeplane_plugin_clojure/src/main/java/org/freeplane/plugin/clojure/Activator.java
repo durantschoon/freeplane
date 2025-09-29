@@ -19,12 +19,10 @@ package org.freeplane.plugin.clojure;
 
 import java.util.Hashtable;
 
-import org.freeplane.api.Controller;
 import org.freeplane.features.mode.ModeController;
 import org.freeplane.features.mode.mindmapmode.MModeController;
 import org.freeplane.main.application.CommandLineOptions;
 import org.freeplane.main.osgi.IModeControllerExtensionProvider;
-import org.freeplane.plugin.clojure.proxy.ClojureScriptUtils;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
 
@@ -40,16 +38,23 @@ public class Activator implements BundleActivator {
      */
     @Override
     public void start(final BundleContext context) throws Exception {
+        System.out.println("Clojure plugin bundle starting...");
+        
         final Hashtable<String, String[]> props = new Hashtable<String, String[]>();
         props.put("mode", new String[] { MModeController.MODENAME });
         context.registerService(IModeControllerExtensionProvider.class.getName(),
             new IModeControllerExtensionProvider() {
                 @Override
                 public void installExtension(ModeController modeController, CommandLineOptions options) {
-                    new ClojureScriptingRegistration().register(modeController, options);
+                    System.out.println("Clojure plugin extension installing...");
+                    // TODO: Register Clojure scripting when ClojureScriptingRegistration is implemented
+                    // new ClojureScriptingRegistration().register(modeController, options);
                 }
             }, props);
-        context.registerService(Controller.class.getName(), ClojureScriptUtils.c(), new Hashtable<String, String[]>());
+        // TODO: Register controller service when ClojureScriptUtils is implemented
+        // context.registerService(Controller.class.getName(), ClojureScriptUtils.c(), new Hashtable<String, String[]>());
+        
+        System.out.println("Clojure plugin bundle started successfully");
     }
 
     /*

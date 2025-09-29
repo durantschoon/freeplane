@@ -20,12 +20,12 @@
 (println "Processed children:" processed-children)
 
 ;; Create a summary node
-(def summary-node (.addChild current-node "Summary"))
+(def summary-node (.createChild current-node "Summary"))
 (.setText summary-node (str "Found " (count processed-children) " non-empty children"))
 
 ;; Add details for each processed child
 (doseq [child-text processed-children]
-  (let [detail-node (.addChild summary-node "Detail")]
+  (let [detail-node (.createChild summary-node "Detail")]
     (.setText detail-node child-text)))
 
 ;; Use Clojure's data manipulation
@@ -36,7 +36,7 @@
    :timestamp (java.util.Date.)})
 
 ;; Create a data node
-(def data-node (.addChild current-node "Node Data"))
+(def data-node (.createChild current-node "Node Data"))
 (.setText data-node (str node-data))
 
 (println "Advanced script completed!")

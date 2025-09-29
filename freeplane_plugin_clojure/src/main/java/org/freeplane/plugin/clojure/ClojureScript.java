@@ -18,19 +18,20 @@
 package org.freeplane.plugin.clojure;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.PrintStream;
-import java.security.AccessControlException;
-import java.security.AccessController;
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 
 import org.freeplane.features.map.NodeModel;
-import org.freeplane.plugin.script.CompileTimeStrategy;
+import org.freeplane.plugin.script.ExecuteScriptException;
 import org.freeplane.plugin.script.IFreeplaneScriptErrorHandler;
 import org.freeplane.plugin.script.IScript;
 import org.freeplane.plugin.script.ScriptContext;
 import org.freeplane.plugin.script.ScriptingPermissions;
-import org.freeplane.plugin.script.ScriptingSecurityManager;
+
+import clojure.java.api.Clojure;
+import clojure.lang.IFn;
 
 /**
  * Clojure script implementation for Freeplane.
@@ -40,11 +41,10 @@ public class ClojureScript implements IScript {
     
     private final Object script; // String or File
     private final ScriptingPermissions specificPermissions;
-    private final CompileTimeStrategy compileTimeStrategy;
-    private final ClojureScriptClassLoader scriptClassLoader;
-    
-    private Object compiledScript;
+
+    private IFn compiledScript;
     private Throwable errorsInScript;
+    private boolean scriptCompiled = false;
     
     public ClojureScript(String script) {
         this((Object) script);
@@ -52,7 +52,6 @@ public class ClojureScript implements IScript {
 
     public ClojureScript(File script) {
         this((Object) script);
-        compileTimeStrategy = new CompileTimeStrategy(script);
     }
 
     public ClojureScript(String script, ScriptingPermissions permissions) {
@@ -61,16 +60,15 @@ public class ClojureScript implements IScript {
 
     public ClojureScript(File script, ScriptingPermissions permissions) {
         this((Object) script, permissions);
-        compileTimeStrategy = new CompileTimeStrategy(script);
     }
 
     private ClojureScript(Object script, ScriptingPermissions permissions) {
         super();
         this.script = script;
         this.specificPermissions = permissions;
-        compiledScript = null;
-        errorsInScript = null;
-        compileTimeStrategy = new CompileTimeStrategy(null);
+        this.compiledScript = null;
+        this.errorsInScript = null;
+        this.scriptCompiled = false;
     }
 
     private ClojureScript(Object script) {
@@ -78,119 +76,93 @@ public class ClojureScript implements IScript {
     }
 
     @Override
-    public Object execute(final NodeModel node, PrintStream outStream, 
+    public Object execute(final NodeModel node, PrintStream outStream,
                          IFreeplaneScriptErrorHandler errorHandler, ScriptContext scriptContext) {
-        if (errorsInScript != null && compileTimeStrategy.canUseOldCompiledScript()) {
+        if (errorsInScript != null && scriptCompiled) {
             throw new ExecuteScriptException(errorsInScript.getMessage(), errorsInScript);
         }
-        
+
         final PrintStream oldOut = System.out;
-        ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
-        
+
         try {
-            return AccessController.doPrivileged(new PrivilegedExceptionAction<Object>(){
-                @Override
-                public Object run() throws Exception {
-                    try {
-                        final ScriptingSecurityManager scriptingSecurityManager = createScriptingSecurityManager(outStream);
-                        compileAndCache(scriptingSecurityManager);
-                        Thread.currentThread().setContextClassLoader(scriptClassLoader);
-                        
-                        ClojureScriptBaseClass scriptWithBinding = compiledScript.withBinding(node, scriptContext);
-                        if(oldOut != outStream)
-                            System.setOut(outStream);
-                        
-                        final Object result = scriptWithBinding.run();
-                        return result;
-                    } catch (Exception e) {
-                        throw e;
-                    } catch (Throwable e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-            });
-        } catch (final PrivilegedActionException e) {
-            Throwable cause = e.getCause();
-            if(cause instanceof ClojureScriptException) {
-                outStream.print("message: " + e.getMessage());
-                int lineNumber = findErrorLine((ClojureScriptException) cause);
+            compileAndCache();
+
+            if(oldOut != outStream)
+                System.setOut(outStream);
+
+            // Execute the compiled Clojure function with node binding
+            final Object result = compiledScript.invoke(node, scriptContext);
+            return result;
+        } catch (final Throwable e) {
+            outStream.print("message: " + e.getMessage());
+            int lineNumber = findErrorLine(e);
+            if (lineNumber > 0) {
                 outStream.print("Line number: " + lineNumber);
                 errorHandler.gotoLine(lineNumber);
-                throw new ExecuteScriptException(cause.getMessage() + " at line " + lineNumber, cause);
+                throw new ExecuteScriptException(e.getMessage() + " at line " + lineNumber, e);
+            } else {
+                throw new ExecuteScriptException(e.getMessage(), e);
             }
-            else
-                throw new ExecuteScriptException(cause.getMessage(), cause);
-        } catch (final ExecuteScriptException e) {
-            throw e;
-        } catch (final Throwable e) {
-            throw new ExecuteScriptException(e.getMessage(), e);
         }
         finally {
             if(oldOut != outStream)
                 System.setOut(oldOut);
-            Thread.currentThread().setContextClassLoader(contextClassLoader);
         }
     }
 
-    private ScriptingSecurityManager createScriptingSecurityManager(PrintStream outStream) {
-        return new ScriptSecurity(script, specificPermissions, outStream)
-                .getScriptingSecurityManager();
-    }
-
-    private static boolean accessPermissionCheckerChecked = false;
-
-    private void compileAndCache(final ScriptingSecurityManager scriptingSecurityManager) throws Throwable {
-        checkAccessPermissionCheckerExists();
-        if (compileTimeStrategy.canUseOldCompiledScript()) {
-            scriptClassLoader.setSecurityManager(scriptingSecurityManager);
+    private void compileAndCache() throws Throwable {
+        if (scriptCompiled && compiledScript != null) {
+            return; // Use cached compiled script
         }
-        else {
-            removeOldScript();
-            errorsInScript = null;
-            try {
-                scriptClassLoader = ClojureScriptClassLoader.createClassLoader();
-                scriptClassLoader.setSecurityManager(scriptingSecurityManager);
-                
-                compileTimeStrategy.scriptCompileStart();
-                if (script instanceof String) {
-                    compiledScript = ClojureScriptBaseClass.compileScript((String) script);
-                } else if (script instanceof File) {
-                    compiledScript = ClojureScriptBaseClass.compileScript((File) script);
-                } else {
-                    throw new IllegalArgumentException();
-                }
-                compiledScript.setScript(script);
-                compileTimeStrategy.scriptCompiled();
-            } catch (Throwable e) {
-                errorsInScript = e;
-                throw e;
+
+        removeOldScript();
+        errorsInScript = null;
+        try {
+            String scriptSource;
+            if (script instanceof String) {
+                scriptSource = (String) script;
+            } else if (script instanceof File) {
+                scriptSource = Files.readString(((File) script).toPath(), StandardCharsets.UTF_8);
+            } else {
+                throw new IllegalArgumentException("Script must be String or File");
             }
-        }
-    }
 
-    static void checkAccessPermissionCheckerExists() {
-        if(!accessPermissionCheckerChecked){
-            if(System.getSecurityManager() != null){
-                try {
-                    ClojureScript.class.getClassLoader().loadClass("clojure.lang.RT");
-                } catch (ClassNotFoundException e) {
-                    throw new AccessControlException("class clojure.lang.RT not found");
-                }
-            }
-            accessPermissionCheckerChecked = true;
+            // Wrap the script in a function that takes node and scriptContext as parameters
+            String wrappedScript = "(fn [node script-context] " +
+                "(binding [*ns* (find-ns 'user)] " +
+                scriptSource + "))";
+
+            // Compile the Clojure script using clojure.core/eval
+            IFn evalFn = Clojure.var("clojure.core", "eval");
+            IFn readStringFn = Clojure.var("clojure.core", "read-string");
+
+            Object compiledForm = readStringFn.invoke(wrappedScript);
+            compiledScript = (IFn) evalFn.invoke(compiledForm);
+            scriptCompiled = true;
+        } catch (Throwable e) {
+            errorsInScript = e;
+            throw e;
         }
     }
 
     private void removeOldScript() {
         if (compiledScript != null) {
-            // Clojure-specific cleanup if needed
             compiledScript = null;
+            scriptCompiled = false;
         }
     }
 
-    private int findErrorLine(final ClojureScriptException e) {
-        // Extract line number from Clojure exception
-        return e.getLine();
+    private int findErrorLine(final Throwable e) {
+        String message = e.getMessage();
+        if (message != null) {
+            // Try to extract line number from Clojure exception message
+            java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(".*line ([0-9]+).*", java.util.regex.Pattern.DOTALL);
+            java.util.regex.Matcher matcher = pattern.matcher(message);
+            if (matcher.matches()) {
+                return Integer.parseInt(matcher.group(1));
+            }
+        }
+        return -1; // No line number found
     }
 
     @Override

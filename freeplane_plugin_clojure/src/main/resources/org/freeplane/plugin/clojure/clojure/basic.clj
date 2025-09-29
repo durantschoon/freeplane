@@ -13,10 +13,10 @@
 (println "Current node:" node-text)
 
 ;; Add a child node
-(.addChild current-node "Hello from Clojure!")
+(.createChild current-node "Hello from Clojure!")
 
 ;; Add another child with more complex content
-(def new-child (.addChild current-node "Clojure Script Result"))
+(def new-child (.createChild current-node "Clojure Script Result"))
 (.setText new-child (str "Script executed at: " (java.util.Date.)))
 
 (println "Script execution completed!")
