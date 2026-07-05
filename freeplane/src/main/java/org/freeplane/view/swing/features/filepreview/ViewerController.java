@@ -547,7 +547,7 @@ public class ViewerController extends PersistentNodeHook implements INodeViewLif
 		    "relative");
 		if (file == null && useRelativeUri) {
 			JOptionPane.showMessageDialog(viewController.getCurrentRootComponent(), TextUtils
-			    .getText("not_saved_for_image_error"), "Freeplane", JOptionPane.WARNING_MESSAGE);
+			    .getText("not_saved_for_image_error"), "DurantsFreeplane", JOptionPane.WARNING_MESSAGE);
 			return null;
 		}
 		final UrlManager urlManager = controller.getModeController().getExtension(UrlManager.class);
@@ -825,7 +825,7 @@ public class ViewerController extends PersistentNodeHook implements INodeViewLif
 	        final File mapFile = targetNode.getMap().getFile();
 	        if (mapFile == null && LinkController.getLinkType() == LinkController.LINK_RELATIVE_TO_MINDMAP) {
 	        	JOptionPane.showMessageDialog(KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner(),
-	        		TextUtils.getText("not_saved_for_image_error"), "Freeplane", JOptionPane.WARNING_MESSAGE);
+	        		TextUtils.getText("not_saved_for_image_error"), "DurantsFreeplane", JOptionPane.WARNING_MESSAGE);
 	        	return false;
 	        }
 	        if (LinkController.getLinkType() != LinkController.LINK_ABSOLUTE) {

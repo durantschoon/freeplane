@@ -285,7 +285,7 @@ class TimeManagement implements PropertyChangeListener, IMapSelectionListener {
 							getResourceString("reminder.reminderNode_onlyOneDate"));
 						final String message = formatter.format(messageArguments);
 						final int result = JOptionPane.showConfirmDialog(controller.getViewController().getCurrentRootComponent(), message,
-							"Freeplane", JOptionPane.YES_NO_OPTION);
+							"DurantsFreeplane", JOptionPane.YES_NO_OPTION);
 						if (result == JOptionPane.NO_OPTION) {
 							return;
 						}

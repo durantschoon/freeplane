@@ -91,6 +91,7 @@ public class Launcher {
 	private static void disableUiScalingIfNotMacOs() {
 		if (!System.getProperty("os.name").startsWith("Mac"))
 			System.setProperty("sun.java2d.uiScale","1");
+		System.setProperty("apple.awt.application.name", "DurantsFreeplane");
 	}
 
 	private static void checkForCompatibleJavaVersion() {

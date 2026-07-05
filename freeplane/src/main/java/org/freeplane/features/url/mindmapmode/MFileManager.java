@@ -436,7 +436,7 @@ public class MFileManager extends UrlManager implements IMapViewChangeListener {
 		if (file == null && LinkController.getLinkType() == LinkController.LINK_RELATIVE_TO_MINDMAP) {
 			JOptionPane.showMessageDialog(
 			   mapController.getModeController().getController().getViewController().getCurrentRootComponent(),
-			    TextUtils.getText("not_saved_for_link_error"), "Freeplane", JOptionPane.WARNING_MESSAGE);
+			    TextUtils.getText("not_saved_for_link_error"), "DurantsFreeplane", JOptionPane.WARNING_MESSAGE);
 			return null;
 		}
 		JFileChooser chooser = getFileChooser();
@@ -805,7 +805,7 @@ public class MFileManager extends UrlManager implements IMapViewChangeListener {
 		}
 		if (f.exists()) {
 			final int overwriteMap = JOptionPane.showConfirmDialog(Controller.getCurrentController()
-			    .getMapViewManager().getMapViewComponent(), TextUtils.getText("map_already_exists"), "Freeplane",
+			    .getMapViewManager().getMapViewComponent(), TextUtils.getText("map_already_exists"), "DurantsFreeplane",
 			    JOptionPane.YES_NO_OPTION);
 			UITools.resetMenuBarOnMac();
 			if (overwriteMap != JOptionPane.YES_OPTION) {

@@ -345,7 +345,7 @@ class UpdateCheckAction extends AFreeplaneAction {
 		// first row : freeplane
         c.gridy = 1;
         
-		final JLabel freeplaneLabel = new JLabel("Freeplane");
+		final JLabel freeplaneLabel = new JLabel("DurantsFreeplane");
 		final FreeplaneVersion freeplaneLocalVersion = FreeplaneVersion.getVersion();
 		final JLabel freeplaneInstalledVersionLabel = new JLabel(freeplaneLocalVersion.toString(), SwingConstants.CENTER);
 		final JLabel freeplaneLatestVersionLabel;

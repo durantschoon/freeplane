@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<preferences_structure>
+    <tabbedpane>
+        <tab name="plugins/Clojure">
+            <separator name="plugins/Clojure/Scripting">
+                <number name="clojure_script_cache_size" 
+                        text="plugins/Clojure/Scripting/CacheSize"
+                        min="1" max="1000" default="100"/>
+                <number name="clojure_script_timeout" 
+                        text="plugins/Clojure/Scripting/Timeout"
+                        min="1000" max="300000" default="30000"/>
+                <boolean name="clojure_script_security_enabled" 
+                         text="plugins/Clojure/Scripting/SecurityEnabled"
+                         default="true"/>
+                <boolean name="clojure_script_enabled" 
+                         text="plugins/Clojure/Scripting/ClojureScriptEnabled"
+                         default="false"/>
+            </separator>
+        </tab>
+    </tabbedpane>
+</preferences_structure>
