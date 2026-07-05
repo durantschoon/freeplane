@@ -262,3 +262,7 @@ gradle-app.setting
 *.temp
 .!*
 private-extensions/
+
+# Local testing scripts
+test_encryption_quick.sh
+.classpath_cache

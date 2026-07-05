@@ -28,7 +28,7 @@ import org.freeplane.view.swing.map.NodeView;
  * The MouseMotionListener which belongs to every NodeView
  */
 public class DefaultNodeMouseMotionListener implements IMouseListener {
-	protected final NodeSelector nodeSelector;
+	protected final NodeSelector nodeSelector = NodeSelector.mapNodeSelector;
 	protected final NodeFolder nodeFolder;
 	private static final String FOLD_ON_CLICK_INSIDE = "fold_on_click_inside";
 	static final String OPEN_LINKS_ON_PLAIN_CLICKS = "openLinksOnPlainClicks";
@@ -42,7 +42,6 @@ public class DefaultNodeMouseMotionListener implements IMouseListener {
 	public DefaultNodeMouseMotionListener() {
 //		mc = modeController;
 		doubleClickTimer = new DoubleClickTimer();
-		nodeSelector = new NodeSelector();
 		nodeFolder = new NodeFolder();
 	}
 
@@ -207,9 +206,9 @@ public class DefaultNodeMouseMotionListener implements IMouseListener {
 	public void mouseEntered(final MouseEvent e) {
 		if (nodeSelector.isRelevant(e)) {
 			if (isInFoldingControl(e)) {
-				nodeFolder.createTimer(e);
+				nodeFolder.handleMouseEvent(e);
 			} else {
-				nodeSelector.createTimer(e);
+				nodeSelector.handleMouseEvent(e);
 			}
 			mouseMoved(e);
 		}
@@ -258,9 +257,9 @@ public class DefaultNodeMouseMotionListener implements IMouseListener {
         	node.setCursor(requiredCursor);
         }
 		if (isInFoldingControl(e)) {
-			nodeFolder.createTimer(e);
+			nodeFolder.handleMouseEvent(e);
 		} else {
-			nodeSelector.createTimer(e);
+			nodeSelector.handleMouseEvent(e);
 		}
 	}
 

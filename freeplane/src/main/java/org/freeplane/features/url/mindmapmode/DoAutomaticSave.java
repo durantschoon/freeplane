@@ -57,7 +57,10 @@ public class DoAutomaticSave implements ActionListener {
 
     @Override
     public void actionPerformed(ActionEvent e) {
-        /* Map is dirty enough? */
+    	final URL url = model.getURL();
+    	if(url == null)
+    		return;
+    	/* Map is dirty enough? */
         if (model.isReadOnly() || model.getNumberOfChangesSinceLastSave() == changeState) {
             return;
         }
@@ -76,13 +79,13 @@ public class DoAutomaticSave implements ActionListener {
             if(!(fileManager instanceof MFileManager))
                 return;
             MModeController modeController = ((MModeController) currentModeController);
-            final URL url = model.getURL();
-            final File file = new File(url != null ? url.getFile() //
-                    : model.getTitle() + UrlManager.FREEPLANE_FILE_EXTENSION);
+            final File file = new File(url.getFile());
             final File pathToStore = MFileManager.backupDir(url != null ? file : null);
             pathToStore.mkdirs();
             final File tempFile = MFileManager.renameAutosaveFiles(pathToStore, file, numberOfFiles, filesShouldBeDeletedAfterShutdown);
             if (tempFile == null) {
+            	if(numberOfFiles > 0)
+            		LogUtils.severe("Can't create automatic backup for " + file);
                 return;
             }
             if (filesShouldBeDeletedAfterShutdown) {
@@ -94,21 +97,29 @@ public class DoAutomaticSave implements ActionListener {
                 }
                 if (file.renameTo(tempFile)) {
                     ((MFileManager) fileManager).save(model);
-                    modeController.getController().getViewController()
-                    .out(TextUtils.format("automatically_save_message", model.getFile()));
+                    outputStatusMessageAfterAutomaticSave(modeController, model.getFile());
                 }
+                else
+                	LogUtils.severe("Can't create automatic backup for " + file);
             }
             else if(tempFile.isFile() && tempFile.canWrite()
                     || ! tempFile.exists() && tempFile.getParentFile().canWrite()) {
                 ((MFileManager) fileManager)
                 .saveInternal((MMapModel) model, tempFile, true /*=internal call*/);
-                modeController.getController().getViewController()
-                .out(TextUtils.format("automatically_save_message", tempFile));
+                outputStatusMessageAfterAutomaticSave(modeController, tempFile);
             }
+            else if (numberOfFiles > 0)
+            	LogUtils.severe("Can't create automatic backup for " + file);
         }
         catch (final Exception ex) {
             LogUtils.severe("Error in automatic MapModel.save(): ", ex);
         }
     }
+
+	private void outputStatusMessageAfterAutomaticSave(MModeController modeController, final File savedFile) {
+		if (ResourceController.getResourceController().getBooleanProperty("outputs_status_message_after_automatic_save", true))
+			modeController.getController().getViewController()
+			.out(TextUtils.format("automatically_save_message", savedFile));
+	}
 
 }

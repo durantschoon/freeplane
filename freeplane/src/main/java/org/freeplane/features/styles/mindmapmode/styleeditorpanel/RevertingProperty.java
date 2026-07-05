@@ -29,14 +29,13 @@ import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.border.Border;
 
-import org.freeplane.core.resources.components.IPropertyControl;
 import org.freeplane.core.resources.components.PropertyBean;
 import org.freeplane.core.ui.components.UITools;
 import org.freeplane.core.util.TextUtils;
 
 import com.jgoodies.forms.builder.DefaultFormBuilder;
 
-class RevertingProperty extends PropertyBean implements IPropertyControl {
+class RevertingProperty extends PropertyBean {
 
     static final String NAME = "revert";
     private static final int PADDING = (int) (UITools.FONT_SCALE_FACTOR * 2);

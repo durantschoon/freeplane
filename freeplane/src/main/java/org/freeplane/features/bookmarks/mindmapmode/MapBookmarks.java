@@ -14,7 +14,6 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 import org.freeplane.core.extension.IExtension;
-import org.freeplane.core.util.TextUtils;
 import org.freeplane.features.map.IMapSelection;
 import org.freeplane.features.map.MapModel;
 import org.freeplane.features.map.NodeModel;
@@ -26,11 +25,10 @@ public class MapBookmarks implements IExtension {
 	private Map<String, NodeBookmarkDescriptor> bookmarks;
 	private Map<String, String> selectedNodesBySelectionRoot;
 
-	static MapBookmarks of(MapModel map) {
+	public static MapBookmarks of(MapModel map) {
 		MapBookmarks bookmarks = map.getExtension(MapBookmarks.class);
 		if(bookmarks == null) {
 			bookmarks = new MapBookmarks(map);
-			bookmarks.add(map.getRootNode().getID(), new NodeBookmarkDescriptor(TextUtils.getRawText("AutomaticLayout.level.root"), true));
 			map.addExtension(bookmarks);
 		}
 		return bookmarks;
@@ -54,7 +52,7 @@ public class MapBookmarks implements IExtension {
 		if (bookmarks.put(id, bookmark) == null) {
 			List<String> visibleBookmarkIds = getVisibleBookmarkIds();
 			int insertPosition = Math.max(0, Math.min(position, visibleBookmarkIds.size()));
-			
+
 			if (insertPosition >= visibleBookmarkIds.size()) {
 				nodeIDs.add(id);
 			} else {
@@ -168,7 +166,7 @@ public class MapBookmarks implements IExtension {
 		return bookmarks.size();
 	}
 
-	boolean contains(String id) {
+	public boolean contains(String id) {
 		return bookmarks.containsKey(id);
 	}
 

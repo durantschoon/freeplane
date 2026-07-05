@@ -111,7 +111,8 @@ public class MapModel {
 	}
 
 	public void fireMapChangeEvent(final MapChangeEvent event) {
-		for (final IMapChangeListener listener : listeners) {
+		final IMapChangeListener[] list = listeners.toArray(new IMapChangeListener[]{});
+		for (final IMapChangeListener listener : list) {
 			listener.mapChanged(event);
 		}
 	}
@@ -125,6 +126,12 @@ public class MapModel {
 	public void fireNodeInsertionEvent(NodeModel parent, NodeModel child, int newIndex) {
 		for (final IMapChangeListener listener : listeners) {
 			listener.onNodeInserted(parent, child, newIndex);
+		}
+	}
+
+	public void fireNodeMovedEvent(NodeMoveEvent nodeMovedEvent) {
+		for (final IMapChangeListener listener : listeners) {
+			listener.onNodeMoved(nodeMovedEvent);
 		}
 	}
 
@@ -333,6 +340,4 @@ public class MapModel {
     public INodeDuplicator getNodeDuplicator() {
         return nodeDuplicator;
     }
-
-
 }

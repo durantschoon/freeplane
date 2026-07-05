@@ -1,6 +1,24 @@
 ==============================
+1.12.18
+==============================
+Bug fix: note panel
+
+==============================
+1.12.17
+==============================
+Bug fix: opening bookmark as root
+Unify "show ... panel" action labels
+
+==============================
+1.12.16
+==============================
+Bug fix: deactivate outline for file mode
+
+==============================
 1.12.15
 ==============================
+Map outline panel
+AES encryption for encrypted nodes and maps
 Open selection as root in a new view (alt+shift+ESCAPE)
 
 ==============================

@@ -16,7 +16,6 @@ import java.awt.event.MouseEvent;
 
 import javax.swing.JList;
 import javax.swing.LayoutFocusTraversalPolicy;
-import javax.swing.SwingConstants;
 import javax.swing.border.Border;
 import javax.swing.border.EtchedBorder;
 import javax.swing.plaf.ToolBarUI;
@@ -68,7 +67,7 @@ public class BookmarkToolbar extends FreeplaneToolBar {
 		super(FreeplaneToolBar.FLOATING_HORIZONTAL);
 		this.map = map;
     	ToolbarLayout layout = (ToolbarLayout) getLayout();
-    	layout.setGap(GAP, true, false);
+    	layout.setGap(GAP, 0, true, false);
     	setDisablesFocus(false);
     	setFocusable(true);
     	setFocusCycleRoot(true);

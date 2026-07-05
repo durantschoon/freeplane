@@ -52,6 +52,7 @@
 				<number name="backup_file_number" min="0" max="25" />
 				<boolean name="saveQuickFilters"/>
 				<number name="savedConditionLimit" min="0" max="1000"/>
+				<boolean name="outputs_status_message_after_automatic_save"/>
 			</separator>
 			<separator name="export">
 				<number name="exported_image_resolution_dpi" min="72" max="2400" />
@@ -161,6 +162,17 @@
 				<length defaultUnit = "px" name="outline_vgap" min="0" max = "1000" step = "0.1"/>
 				<length defaultUnit = "px" name="outline_hgap" min="0" max = "1000" step = "0.1" />
 				<boolean name="outline_view_fits_window_width"/>
+			</separator>
+			<separator name="outline_panel">
+				<radiobuttons name="outlineBreadcrumbMode" enum="org.freeplane.view.swing.map.outline.BreadcrumbMode"/>
+				<number name="outlineItemFontSize" min="3" />
+				<boolean name="useColoredOutlineItems" />
+				<length name="outlineItemIndentation" min="0" max = "1000" step = "0.1" defaultUnit = "mm" />
+				<boolean name="showOutlineFoldingButtons" />
+				<number name="initiallyExpandedOutlineLevel" min="1" />
+				<number name="minimalFoldableOutlineLevel" min="1" />
+				<number name="outlineFilterHistorySize" min="1" max = "100"/>
+				<radiobuttons name="outlineTextWritingDirection" enum="org.freeplane.api.TextWritingDirection"/>
 			</separator>
 			<separator name="icon_properties">
 				<boolean name="structured_icon_toolbar" />

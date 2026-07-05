@@ -28,17 +28,17 @@ import java.awt.event.AWTEventListener;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
+import java.util.function.Function;
 
 import javax.swing.FocusManager;
 import javax.swing.SwingUtilities;
+import javax.swing.text.JTextComponent;
 
 import org.freeplane.core.resources.ResourceController;
 import org.freeplane.core.util.Compat;
 import org.freeplane.features.map.IMapSelection;
-import org.freeplane.features.map.MapController;
 import org.freeplane.features.map.NodeModel;
 import org.freeplane.features.mode.Controller;
-import org.freeplane.features.mode.ModeController;
 import org.freeplane.view.swing.map.MainView;
 import org.freeplane.view.swing.map.MapView;
 import org.freeplane.view.swing.map.NodeView;
@@ -48,7 +48,17 @@ import org.freeplane.view.swing.map.NodeView;
  * 19.06.2013
  */
 public class NodeSelector implements MouseTimerDelegate.ActionProvider {
-    private static final String SELECTION_INSIDE_SAME_MAP = "selection_inside.same_map";
+	public static final NodeSelector mapNodeSelector = new NodeSelector();
+	public static final NodeSelector mapViewSelector = new NodeSelector(
+			mev -> (aev -> {
+				NodeView selected = ((MapView)mev.getComponent()).getSelected();
+				if(selected != null)
+					selected.getMainView().requestFocusInWindow();
+			}),
+			mev -> ((MapView)mev.getComponent())
+			);
+
+	private static final String SELECTION_INSIDE_SAME_MAP = "selection_inside.same_map";
 	private static final String SELECTION_INSIDE_SELECTED_WINDOW = "selection_inside.selected_window";
 	private static final String SELECTION_INSIDE_ANY_MAP = "selection_inside.any_map";
 	private static final String SELECTION_INSIDE_SELECTED_MAP_VIEW = "selection_inside.selected_map_view";
@@ -82,23 +92,26 @@ public class NodeSelector implements MouseTimerDelegate.ActionProvider {
 		}
 	}
 
+	private static final AWTEventListener mouseMovementDetector;
     static {
-        Toolkit.getDefaultToolkit().addAWTEventListener(
-            new AWTEventListener() {
-                int lastX = -1;
-                int lastY = -1;
-                @Override
-                public void eventDispatched(AWTEvent event) {
-                    if (event instanceof MouseEvent) {
-                        MouseEvent mouseEvent = (MouseEvent) event;
-                        int x = mouseEvent.getXOnScreen();
-                        int y = mouseEvent.getYOnScreen();
-                        mouseWasMoved = lastX != x || lastY != y;
-                        lastX = x;
-                        lastY = y;
-                    }
-                }
-            }, AWTEvent.MOUSE_EVENT_MASK | AWTEvent.MOUSE_MOTION_EVENT_MASK | AWTEvent.MOUSE_WHEEL_EVENT_MASK
+        mouseMovementDetector = new AWTEventListener() {
+		    int lastX = -1;
+		    int lastY = -1;
+		    @Override
+		    public void eventDispatched(AWTEvent event) {
+		        if (event instanceof MouseEvent &&
+		        		(event.getID() != MouseEvent.MOUSE_EXITED)) {
+		            MouseEvent mouseEvent = (MouseEvent) event;
+		            int x = mouseEvent.getXOnScreen();
+		            int y = mouseEvent.getYOnScreen();
+		            mouseWasMoved = lastX != x || lastY != y;
+		            lastX = x;
+		            lastY = y;
+		        }
+		    }
+		};
+		Toolkit.getDefaultToolkit().addAWTEventListener(
+            mouseMovementDetector, AWTEvent.MOUSE_EVENT_MASK | AWTEvent.MOUSE_MOTION_EVENT_MASK | AWTEvent.MOUSE_WHEEL_EVENT_MASK
         );
     }
 
@@ -109,52 +122,41 @@ public class NodeSelector implements MouseTimerDelegate.ActionProvider {
 	private static boolean mouseWasMoved = false;
 	private final MovedMouseEventFilter windowMouseTracker = new MovedMouseEventFilter();
 	private final MouseTimerDelegate timerDelegate = new MouseTimerDelegate();
+	private final Function<MouseEvent, ActionListener> actionFactory;
+	private final Function<MouseEvent, MapView> mapViewProvider;
 
-	static class TimeDelayedSelection implements ActionListener {
-		private final MouseEvent mouseEvent;
-
-		TimeDelayedSelection(final MouseEvent e) {
-			this.mouseEvent = e;
-		}
-
-		@Override
-		public void actionPerformed(ActionEvent event) {
-		    if (mouseEvent.getModifiers() != 0) {
-		        return;
-		    }
-		    try {
-		        Controller controller = Controller.getCurrentController();
-		        ModeController modeController = controller.getModeController();
-                if (!modeController.isBlocked() && controller.getSelection().size() <= 1) {
-		            final NodeView nodeV = (NodeView) SwingUtilities.getAncestorOfClass(NodeView.class,
-		                    mouseEvent.getComponent());
-		            MapView map = nodeV.getMap();
-		            if (nodeV.isDisplayable() && nodeV.getNode().hasVisibleContent(map.getFilter())) {
-		                map.select();
-		                NodeModel node = nodeV.getNode();
-		                MouseEventActor.INSTANCE.withMouseEvent( () -> {
-                            	MapController mapController = modeController.getMapController();
-                            	controller.getSelection().selectAsTheOnlyOneSelected(node);
-                            	mapController.scrollNodeTreeAfterSelect(node);
-							});
-		            }
-		        }
-		    }
-		    catch (NullPointerException e) {
-		    }
-		}
+	private NodeSelector() {
+		this(NodeSelector::createNodeSelectorAction, NodeSelector::provideMapView);
 	}
 
 
-	void createTimer(final MouseEvent e) {
+
+	public NodeSelector(Function<MouseEvent, ActionListener> actionFactory,
+	        Function<MouseEvent, MapView> mapViewProvider) {
+		super();
+		this.actionFactory = actionFactory;
+		this.mapViewProvider = mapViewProvider;
+	}
+
+	public void handleMouseEvent(final MouseEvent e) {
 		if(! mouseWasMoved) {
 			return;
 		}
+		final Component focusOwner = FocusManager.getCurrentManager().getFocusOwner();
+		final Component eventSource = e.getComponent();
+		if(focusOwner instanceof JTextComponent || focusOwner != null && SwingUtilities.isDescendingFrom(focusOwner, eventSource))
+			return;
+
+		Window w =  SwingUtilities.windowForComponent(eventSource);
+		final Component windowFocusOwner = w.getFocusOwner();
+		if(windowFocusOwner instanceof JTextComponent)
+			return;
+
 		if (!isInside(e)) {
 			return;
 		}
 
-		final String selectionTiming = getSelectionBehavior(e.getComponent());
+		final String selectionTiming = getSelectionBehavior(e);
 		if (selectionTiming.equals(SELECTION_DISABLED)) {
 			return;
 		}
@@ -178,12 +180,19 @@ public class NodeSelector implements MouseTimerDelegate.ActionProvider {
 
 	@Override
 	public ActionListener createDelayedAction(MouseEvent e) {
-		return new TimeDelayedSelection(e);
+		return actionFactory.apply(e);
+	}
+
+	static private ActionListener createNodeSelectorAction(MouseEvent e) {
+		return new TimeDelayedNodeSelection(e);
+	}
+	private static MapView provideMapView(MouseEvent event) {
+		return (MapView) SwingUtilities.getAncestorOfClass(MapView.class, event.getComponent());
 	}
 
 	@Override
 	public boolean isActionEnabled(MouseEvent e) {
-		final String selectionBehavior = getSelectionBehavior(e.getComponent());
+		final String selectionBehavior = getSelectionBehavior(e);
 		return !selectionBehavior.equals(SELECTION_DISABLED);
 	}
 
@@ -246,7 +255,7 @@ public class NodeSelector implements MouseTimerDelegate.ActionProvider {
 		timerDelegate.trackWindowForComponent(c);
 	}
 
-	private String getSelectionBehavior(Component c) {
+	private String getSelectionBehavior(MouseEvent e) {
 		ResourceController rc = ResourceController.getResourceController();
 		String behavior = rc.getProperty(MOUSE_OVER_SELECTION, SELECTION_IMMEDIATE);
 		if (SELECTION_DISABLED.equals(behavior)) {
@@ -260,22 +269,23 @@ public class NodeSelector implements MouseTimerDelegate.ActionProvider {
 		case SELECTION_INSIDE_ANY_MAP:
 			return behavior;
 		case SELECTION_INSIDE_SELECTED_MAP_VIEW: {
-			final MapView map = (MapView) SwingUtilities.getAncestorOfClass(MapView.class, c);
+			final MapView map = mapViewProvider.apply(e);
 			return map != null && map.isSelected() ? behavior : SELECTION_DISABLED;
 		}
 		case SELECTION_INSIDE_SAME_MAP: {
-			final MapView map = (MapView) SwingUtilities.getAncestorOfClass(MapView.class, c);
+			final MapView map = mapViewProvider.apply(e);
 			if( map == null)
 				return SELECTION_DISABLED;
 			final IMapSelection selection = map.getModeController().getController().getSelection();
 			return selection != null  && map.getMap() == selection.getMap() ? behavior : SELECTION_DISABLED;
 		}
 		case SELECTION_INSIDE_SELECTED_WINDOW: {
-			final Window windowAncestor = SwingUtilities.getWindowAncestor(c);
+			final Window windowAncestor = SwingUtilities.getWindowAncestor(mapViewProvider.apply(e));
 			return  windowAncestor != null && windowAncestor.isFocused() ? behavior : SELECTION_DISABLED;
 		}
 		default:
 			return SELECTION_DISABLED;
 		}
 	}
+
 }

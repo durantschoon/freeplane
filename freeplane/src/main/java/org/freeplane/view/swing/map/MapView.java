@@ -89,6 +89,7 @@ import org.freeplane.features.bookmarks.mindmapmode.BookmarksController;
 import org.freeplane.features.edge.EdgeColorsConfigurationFactory;
 import org.freeplane.features.edge.EdgeController;
 import org.freeplane.features.filter.Filter;
+import org.freeplane.features.filter.FilterUpdateListener;
 import org.freeplane.features.highlight.NodeHighlighter;
 import org.freeplane.features.icon.Tag;
 import org.freeplane.features.icon.TagCategories;
@@ -539,9 +540,9 @@ public class MapView extends JPanel implements Printable, Autoscroll, IMapChange
 			if (selectedNode != null) {
 				removeSelectionForHooks(selectedNode);
 				selectedNode = null;
-				clearSelectedSet();
-				selectedList.clear();
 			}
+			clearSelectedSet();
+			selectedList.clear();
 		}
 
         private void clearSelectedSet() {
@@ -565,6 +566,7 @@ public class MapView extends JPanel implements Printable, Autoscroll, IMapChange
 			final boolean selectedChanged = selectedNode != null && selectedNode.equals(node);
 			if (selectedChanged) {
 				removeSelectionForHooks(node);
+				selectedNode = null;
 			}
 			if (removeFromSelectedSet(node)){
 				final int last = selectedList.size() - 1;
@@ -587,15 +589,15 @@ public class MapView extends JPanel implements Printable, Autoscroll, IMapChange
         }
 
         private void updateSelectedNode() {
-            if(selectedNode != null && ! selectedSet.contains(selectedNode)) {
-                if (size() > 0) {
-                	selectedNode = selectedSet.iterator().next();
-                	addSelectionForHooks();
-                }
-                else{
-                	selectedNode = null;
-                }
-            }
+            if(! selectedSet.contains(selectedNode)){
+				if (size() > 0) {
+				    	selectedNode = selectedSet.iterator().next();
+				    	addSelectionForHooks();
+				}
+	            else{
+	            	selectedNode = null;
+	            }
+			}
         }
 
 		private void removeSelectionForHooks(final NodeView node) {
@@ -801,6 +803,7 @@ public class MapView extends JPanel implements Printable, Autoscroll, IMapChange
     public static final int SCROLL_VELOCITY_PX = (int) (UITools.FONT_SCALE_FACTOR  * 10);
     private final NodeViewFolder nodeViewFolder;
 	private final AntiAliasingConfigurator antiAliasingConfigurator;
+	private FilterUpdateListener filterUpdateListener;
 
     static {
         final ResourceController resourceController = ResourceController.getResourceController();
@@ -905,8 +908,10 @@ public class MapView extends JPanel implements Printable, Autoscroll, IMapChange
         iconLocation = mapStyle.iconLocation(viewedMap);
         rootsHistory.clear();
         filter = Filter.createTransparentFilter();
-        if(lastViewedMap != viewedMap)
-        	modeController.getMapController().fireMapChanged(new MapChangeEvent(this, viewedMap, MapView.class, null, this, false));
+        if(lastViewedMap != viewedMap) {
+            selectAsTheOnlyOneSelected(getRoot());
+			modeController.getMapController().fireMapChanged(new MapChangeEvent(this, viewedMap, MapView.class, null, this, false));
+		}
 
         viewedMap.addMapChangeListener(this);
 
@@ -3315,7 +3320,6 @@ public class MapView extends JPanel implements Printable, Autoscroll, IMapChange
 	private void setRootNode(NodeView newRootView, RootChange rootChange) {
 		if(currentRootView == newRootView)
 			return;
-		boolean newRootWasFolded = newRootView.isFolded() && ! (rootChange == RootChange.JUMP_OUT);
 		if(rootChange == RootChange.JUMP_OUT)
             preserveNodeLocationOnScreen(currentRootView, 0, 0);
         else if(rootChange == RootChange.JUMP_IN)
@@ -3341,7 +3345,7 @@ public class MapView extends JPanel implements Printable, Autoscroll, IMapChange
 		    rootsHistory.clear();
 		if(nextSelectedNode.getParent() == null || ! nextSelectedNode.isContentVisible())
 		    nextSelectedNode = newRootView;
-		if(newRootWasFolded) {
+		if(newRootView.getComponentCount() == 1) {
 			newRootView.fireFoldingChanged();
 	        setSiblingMaxLevel(getSelected());
 		}
@@ -3424,5 +3428,34 @@ public class MapView extends JPanel implements Printable, Autoscroll, IMapChange
 
 	static public boolean showsTagsOnMinimizedNodes() {
 		return showsTagsOnMinimizedNodes;
+	}
+
+	void onFilterResultUpdate(Filter filter, NodeModel node) {
+	    NodeView nodeView = getNodeView(node);
+	    if(nodeView != null) {
+            nodeView.revalidate();
+            nodeView.repaint();
+            if(nodeView.isSelected() && ! nodeView.isContentVisible()) {
+                deselect(nodeView);
+                NodeView ancestorWithVisibleContent = nodeView.getAncestorWithVisibleContent();
+                addSelected(ancestorWithVisibleContent, true);
+            }
+        }
+	    if(filterUpdateListener != null) {
+	    	filterUpdateListener.onFilterResultUpdate(filter, node);
+	    }
+	}
+
+	public FilterUpdateListener getFilterUpdateListener() {
+		return filterUpdateListener;
+	}
+
+	public void setFilterUpdateListener(FilterUpdateListener filterUpdateListener) {
+		this.filterUpdateListener = filterUpdateListener;
+	}
+
+	public void removeFilterUpdateListener(FilterUpdateListener filterUpdateListener) {
+		if(this.filterUpdateListener == filterUpdateListener)
+			this.filterUpdateListener = null;
 	}
 }

@@ -19,15 +19,17 @@
  */
 package org.freeplane.features.filter;
 
+import java.awt.FontMetrics;
 import java.util.List;
 import java.util.Objects;
 import java.util.WeakHashMap;
-import java.util.function.Consumer;
-
 import javax.swing.Icon;
 
 import org.freeplane.core.extension.IExtension;
 import org.freeplane.core.resources.ResourceController;
+import org.freeplane.core.ui.components.MultipleImageIcon;
+import org.freeplane.core.ui.components.TextIcon;
+import org.freeplane.features.filter.condition.ASelectableCondition;
 import org.freeplane.features.filter.condition.ICondition;
 import org.freeplane.features.filter.hidden.NodeVisibility;
 import org.freeplane.features.link.ConnectorModel;
@@ -243,9 +245,11 @@ public class Filter implements IExtension {
     }
 
     public boolean isFoldable(final NodeModel node) {
-        return  filteredElement == FilteredElement.CONNECTOR || (hidesMatchingElements ?
-                accepts(node, options & FilterInfo.SHOW_AS_HIDDEN_DESCENDANT | FilterInfo.SHOW_AS_HIDDEN_ANCESTOR)
-                : accepts(node, options & FilterInfo.SHOW_AS_MATCHED_DESCENDANT | FilterInfo.SHOW_AS_MATCHED_ANCESTOR));
+        return  filteredElement == FilteredElement.CONNECTOR ||
+        		(areDescendantsShown() ?
+        				accepts(node)
+        				: accepts(node,
+        						hidesMatchingElements ? FilterInfo.SHOW_AS_HIDDEN_ANCESTOR : FilterInfo.SHOW_AS_MATCHED_ANCESTOR));
     }
 
     private boolean accepts(final NodeModel node, int options) {
@@ -296,18 +300,21 @@ public class Filter implements IExtension {
         }
     }
 
-    public void updateFilterResults(NodeModel node, Consumer<NodeModel> callbackOnUpdate) {
+    public void updateFilterResults(NodeModel node, FilterUpdateListener callbackOnUpdate) {
         if(condition == null)
             return;
+        boolean wasVisible = isVisible(node);
         boolean matches = checkNode(node);
         FilterInfo filterInfo = getFilterInfo(node);
         filterInfo.set(matches ? FilterInfo.MATCHES : FilterInfo.NO_MATCH);
+        if(wasVisible != isVisible(node))
+        	callbackOnUpdate.onFilterResultUpdate(this, node);
         updateFilterResultsAndAncestors(node, callbackOnUpdate);
         updateDescendantResults(node, matches ? FilterInfo.HAS_MATCHED_ANCESTOR : FilterInfo.HAS_HIDDEN_ANCESTOR, callbackOnUpdate);
     }
 
     private void updateFilterResultsAndAncestors(NodeModel node,
-            Consumer<NodeModel> callbackOnUpdate) {
+    		FilterUpdateListener callbackOnUpdate) {
         FilterInfo filterInfo = getFilterInfo(node);
         NodeModel parentNode = node.getParentNode();
         FilterInfo parentFilterInfo = getFilterInfo(parentNode);
@@ -331,14 +338,14 @@ public class Filter implements IExtension {
             }
             filterInfo.set(ancestorState | ownState | descendantState);
             if(wasVisible != isVisible(node))
-                callbackOnUpdate.accept(node);
+                callbackOnUpdate.onFilterResultUpdate(this, node);
         }
         if(parentNode != null)
             updateFilterResultsAndAncestors(parentNode, callbackOnUpdate);
 
     }
 
-    private void updateDescendantResults(NodeModel node, int options, Consumer<NodeModel> callbackOnUpdate) {
+    private void updateDescendantResults(NodeModel node, int options, FilterUpdateListener callbackOnUpdate) {
         for(NodeModel child : node.getChildren()) {
             FilterInfo childInfo = getFilterInfo(child);
             if(childInfo.matches(options))
@@ -350,12 +357,62 @@ public class Filter implements IExtension {
             boolean wasVisible = isVisible(child);
             if(childInfo.add(options))
                 if(wasVisible != isVisible(child))
-                    callbackOnUpdate.accept(child);
+                    callbackOnUpdate.onFilterResultUpdate(this, child);
                 updateDescendantResults(child, options, callbackOnUpdate);
         }
     }
 
-	public void reset(NodeModel node) {
-		getFilterInfo(node).reset();
-	}
+    public void reset(NodeModel node) {
+        getFilterInfo(node).reset();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (!(obj instanceof Filter)) return false;
+        Filter other = (Filter) obj;
+        return this.hidesMatchingElements == other.hidesMatchingElements
+                && this.appliesToVisibleElementsOnly == other.appliesToVisibleElementsOnly
+                && this.filteredElement == other.filteredElement
+                && this.areAncestorsShown() == other.areAncestorsShown()
+                && this.areDescendantsShown() == other.areDescendantsShown()
+                && Objects.equals(this.condition, other.condition)
+                && Objects.equals(this.baseFilter, other.baseFilter);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(condition, hidesMatchingElements, appliesToVisibleElementsOnly,
+                filteredElement, Boolean.valueOf(areAncestorsShown()), Boolean.valueOf(areDescendantsShown()), baseFilter);
+    }
+
+    public boolean equalsIgnoringAncestors(Filter other) {
+        if (other == null) return false;
+        return this.hidesMatchingElements == other.hidesMatchingElements
+                && this.appliesToVisibleElementsOnly == other.appliesToVisibleElementsOnly
+                && this.filteredElement == other.filteredElement
+                && Objects.equals(this.condition, other.condition)
+                && Objects.equals(this.baseFilter, other.baseFilter);
+    }
+
+    public MultipleImageIcon createIcon(FontMetrics fontMetrics) {
+    	MultipleImageIcon icon;
+    	if (condition instanceof ASelectableCondition) {
+    		icon = ((ASelectableCondition)condition).createIcon(fontMetrics);
+    	} else {
+			icon = new MultipleImageIcon();
+			TextIcon textIcon = new TextIcon(condition != null ? condition.toString() : "--", fontMetrics);
+			icon.addIcon(textIcon);
+		}
+		if(!areAncestorsShown() && !areDescendantsShown() && !areMatchingElementsHidden())
+			return icon;
+		icon.addIcon(new TextIcon(" : ", fontMetrics));
+		if(areAncestorsShown())
+			icon.addIcon(ResourceController.getResourceController().getIcon("ShowAncestorsAction.icon"));
+		if(areDescendantsShown())
+			icon.addIcon(ResourceController.getResourceController().getIcon("ShowDescendantsAction.icon"));
+		if(areMatchingElementsHidden())
+			icon.addIcon(ResourceController.getResourceController().getIcon("HideMatchingNodesAction.icon"));
+		return icon;
+    }
 }
