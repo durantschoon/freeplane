@@ -109,6 +109,7 @@ class ScriptingConfiguration {
 	    classpath.add(ScriptResources.getPrecompiledScriptsDir().getAbsolutePath());
 	    addClasspathForAddOns(classpath);
         addClasspathForConfiguredEntries(classpath);
+        addClasspathForOsgiPlugins(classpath);
         return classpath;
     }
 
@@ -128,6 +129,24 @@ class ScriptingConfiguration {
     private void addClasspathForConfiguredEntries(final ArrayList<String> classpath) {
         for (File classpathElement : uniqueClassPathElements(ResourceController.getResourceController())) {
             addClasspathElement(classpath, classpathElement);
+        }
+    }
+
+    private void addClasspathForOsgiPlugins(final ArrayList<String> classpath) {
+        // Add OSGi plugin JARs to classpath so script engines can find them
+        final File pluginsDir = new File(ResourceController.getResourceController().getInstallationBaseDir(), "plugins");
+        if (pluginsDir.exists() && pluginsDir.isDirectory()) {
+            final File[] pluginDirs = pluginsDir.listFiles();
+            if (pluginDirs != null) {
+                for (File pluginDir : pluginDirs) {
+                    if (pluginDir.isDirectory()) {
+                        final File libDir = new File(pluginDir, "lib");
+                        if (libDir.exists() && libDir.isDirectory()) {
+                            addClasspathElement(classpath, libDir);
+                        }
+                    }
+                }
+            }
         }
     }
 
