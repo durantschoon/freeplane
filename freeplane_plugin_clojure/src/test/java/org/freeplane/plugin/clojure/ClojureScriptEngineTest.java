@@ -122,4 +122,20 @@ public class ClojureScriptEngineTest {
     public void emptyScriptEvaluatesToNull() throws Exception {
         assertThat(engine.eval("", context)).isNull();
     }
+
+    @Test
+    public void vectorResultHasNoInventedMetadata() throws Exception {
+        assertThat(((clojure.lang.IMeta) engine.eval("[1 2]", context)).meta()).isNull();
+    }
+
+    @Test
+    public void mapResultHasNoInventedMetadata() throws Exception {
+        assertThat(((clojure.lang.IMeta) engine.eval("{:a 1}", context)).meta()).isNull();
+    }
+
+    @Test
+    public void userMetadataIsPreservedExactly() throws Exception {
+        Object result = engine.eval("^:keep [1]", context);
+        assertThat(clojure.lang.RT.meta(result).toString()).isEqualTo("{:keep true}");
+    }
 }

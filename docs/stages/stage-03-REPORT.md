@@ -32,6 +32,11 @@ Final (JDK 25 preamble): compileJava, compileTestJava, `:freeplane_plugin_clojur
 3. Baseline not re-run; README numbers used.
 4. Reader catches non-ReaderException failures and reports `reader.getLineNumber()` with cause kept.
 
+5. Made at coordinator request (second commit): deviation 1 originally put `:line` on the user's own non-list form,
+   which leaked `{:line N}` into returned values. Now the reader leaves forms untouched and returns `(do form)` with
+   `:line` only on the `do` list for non-list IObj forms; `ClojureFunctionForm` just places forms. Tests added for
+   null/preserved metadata. Deviation 1's description of `ClojureFunctionForm` wrapping no longer applies.
+
 ## Open questions
 - Line is only exact for top-level forms; errors nested inside a multi-line non-list top-level form (e.g. a long
   vector literal) report the form's first line. Nested lists report their own reader lines.

@@ -3,22 +3,25 @@ package org.freeplane.plugin.clojure;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import javax.script.ScriptException;
 
 import clojure.lang.IObj;
-import clojure.lang.IPersistentMap;
 import clojure.lang.ISeq;
 import clojure.lang.Keyword;
 import clojure.lang.LineNumberingPushbackReader;
 import clojure.lang.LispReader;
+import clojure.lang.PersistentList;
 import clojure.lang.RT;
+import clojure.lang.Symbol;
 import clojure.lang.Var;
 
 final class ClojureScriptReader {
 
     private static final Keyword LINE = Keyword.intern("line");
+    private static final Symbol DO = Symbol.intern("do");
     private static final Object END_OF_SCRIPT = new Object();
 
     private ClojureScriptReader() {
@@ -68,11 +71,7 @@ final class ClojureScriptReader {
         if (!(form instanceof IObj) || form instanceof ISeq) {
             return form;
         }
-        IObj withMeta = (IObj) form;
-        if (RT.get(withMeta.meta(), LINE) != null) {
-            return form;
-        }
-        return withMeta.withMeta((IPersistentMap) RT.assoc(withMeta.meta(), LINE, line));
+        return ((IObj) PersistentList.create(Arrays.<Object>asList(DO, form))).withMeta(RT.map(LINE, line));
     }
 
     private static ScriptException withCause(ScriptException exception, Throwable cause) {

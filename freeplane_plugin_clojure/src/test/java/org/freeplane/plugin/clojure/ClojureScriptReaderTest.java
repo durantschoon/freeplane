@@ -36,6 +36,14 @@ public class ClojureScriptReaderTest {
     }
 
     @Test
+    public void nonListFormIsWrappedInDoCarryingLineAndLeftUntouched() throws Exception {
+        Object form = ClojureScriptReader.readForms("1\n[1 2]").get(1);
+        assertThat(RT.get(((IMeta) form).meta(), Keyword.intern("line"))).isEqualTo(2);
+        assertThat(RT.first(form).toString()).isEqualTo("do");
+        assertThat(((IMeta) RT.second(form)).meta()).isNull();
+    }
+
+    @Test
     public void readEvalIsDisabled() {
         assertThatThrownBy(() -> ClojureScriptReader.readForms(
                 "#=(java.lang.System/setProperty \"stage03.readeval\" \"ran\")"))
