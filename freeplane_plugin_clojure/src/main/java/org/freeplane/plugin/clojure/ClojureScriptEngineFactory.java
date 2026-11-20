@@ -24,6 +24,8 @@ import javax.script.ScriptEngineFactory;
 
 public class ClojureScriptEngineFactory implements ScriptEngineFactory {
 
+    static final String CLOJURE_VERSION = "1.12.2";
+
     @Override
     public String getEngineName() {
         return "Clojure Script Engine";
@@ -56,7 +58,7 @@ public class ClojureScriptEngineFactory implements ScriptEngineFactory {
 
     @Override
     public String getLanguageVersion() {
-        return "1.11.1";
+        return CLOJURE_VERSION;
     }
 
     @Override
