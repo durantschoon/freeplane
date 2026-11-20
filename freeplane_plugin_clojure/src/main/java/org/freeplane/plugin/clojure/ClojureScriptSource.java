@@ -22,14 +22,4 @@ final class ClojureScriptSource {
         }
         return new ArrayList<String>(bindable);
     }
-
-    static String wrap(String script, List<String> bindableNames) {
-        StringBuilder source = new StringBuilder("(fn [bindings] (let [");
-        String separator = "";
-        for (String name : bindableNames) {
-            source.append(separator).append(name).append(" (get bindings \"").append(name).append("\")");
-            separator = " ";
-        }
-        return source.append("]\n").append(script).append("\n))").toString();
-    }
 }

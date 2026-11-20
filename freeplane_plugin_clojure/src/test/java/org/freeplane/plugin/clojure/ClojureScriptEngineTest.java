@@ -102,4 +102,24 @@ public class ClojureScriptEngineTest {
         ScriptEngine found = new ScriptEngineManager().getEngineByExtension("clj");
         assertThat(found).isInstanceOf(ClojureScriptEngine.class);
     }
+
+    @Test
+    public void extraClosingParenDoesNotDropLaterForms() {
+        assertThatThrownBy(() -> engine.eval("(+ 1 2)) (def stage03-dropped 1)", context))
+            .isInstanceOf(ScriptException.class);
+        assertThat(Namespace.findOrCreate(Symbol.intern("user")).findInternedVar(Symbol.intern("stage03-dropped")))
+            .isNull();
+    }
+
+    @Test
+    public void compilerErrorReportsScriptLine() {
+        assertThatThrownBy(() -> engine.eval("1\n2\nstage03-undefined-symbol", context))
+            .isInstanceOf(ScriptException.class)
+            .satisfies(e -> assertThat(((ScriptException) e).getLineNumber()).isEqualTo(3));
+    }
+
+    @Test
+    public void emptyScriptEvaluatesToNull() throws Exception {
+        assertThat(engine.eval("", context)).isNull();
+    }
 }
