@@ -3,26 +3,7 @@ dependencies {
     implementation project(':freeplane_plugin_script')
     implementation project(':freeplane_plugin_jsyntaxpane')
     
-    // Clojure dependencies
-    // lib 'org.clojure:clojure:1.11.1' // Use Rama's bundled Clojure
-    lib 'org.clojure:tools.namespace:1.3.0'
-    lib 'org.clojure:java.classpath:1.0.0'
-    lib 'org.clojure:tools.logging:1.2.4'
-    lib 'org.clojure:data.json:2.4.0'
-    
-    // Rama (Includes compatible Clojure)
-    lib 'com.rpl:rama:1.3.0'
-    testImplementation 'com.rpl:rama:1.3.0'
-}
-
-repositories {
-    mavenCentral()
-    maven {
-        url "https://nexus.redplanetlabs.com/repository/maven-public-releases"
-    }
-    maven {
-        url "https://repo.clojars.org/"
-    }
+    lib 'org.clojure:clojure:1.12.2'
 }
 
 tasks.withType(JavaCompile) {
@@ -33,8 +14,7 @@ tasks.withType(JavaCompile) {
 ext.bundleImports = 'org.freeplane.plugin.script.*, org.freeplane.plugin.jsyntaxpane.*'
 
 ext.bundleExports = """\
-             org.freeplane.plugin.clojure,
-             org.freeplane.plugin.clojure.proxy
+             org.freeplane.plugin.clojure
              """
 
 task copyClojureScripts(type: Copy) {
@@ -44,31 +24,7 @@ task copyClojureScripts(type: Copy) {
     into(globalBin + '/scripts')
 }
 
-javadoc {
-    enabled = true
-
-    title = "Freeplane Clojure API ${project.version}"
-
-    source = fileTree(dir: 'src/main/java')
-      .include('**/ClojureScriptBaseClass.java')
-      .include('**/ClojureStaticImports.java') +
-        fileTree(dir: '../freeplane_api/src/main/java')
-          .include('**/api/*.java') +
-        fileTree(dir: '../freeplane/src/main/java')
-          .include('**/UITools.java')
-          .include('**/TextUtils.java')
-          .include('**/FreeplaneVersion.java')
-          .include('**/HtmlUtils.java')
-          .include('**/LogUtils.java')
-          .include('**/MenuUtils.java') +
-        fileTree(dir: '../freeplane_framework/src/main/java')
-          .include('**/Launcher.java')
-
-    destinationDir = new File(globalBin + '/doc/api/clojure/')
-}
-
 build.dependsOn copyClojureScripts
-build.dependsOn javadoc
 
 test {
     testLogging {
@@ -81,5 +37,11 @@ test {
 jar {
     bundle {
         bnd(['-fixupmessages': '"No sub JAR or directory";is:=ignore'])
+    }
+}
+
+copyOSGiJars {
+    doFirst {
+        delete globalBin + '/plugins/' + pluginid + '/lib'
     }
 }

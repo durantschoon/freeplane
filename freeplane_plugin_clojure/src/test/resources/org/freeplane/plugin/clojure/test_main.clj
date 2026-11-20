@@ -1,15 +1,12 @@
 (ns org.freeplane.plugin.clojure.test-main
   (:require [clojure.test :refer :all]))
 
-(deftest rama-dependencies-test
-  (testing "Rama namespace is loadable"
-    (is (try
-          (require '[com.rpl.rama])
-          true
-          (catch Exception _ false))
-        "com.rpl.rama namespace should be loadable")))
-
 (deftest clojure-version-test
-  (testing "Clojure version check"
-    (let [v (clojure-version)]
-      (is (= "1.12.2" v) (str "Expected 1.12.2 but got " v)))))
+  (testing "Clojure version matches the version reported by the engine factory"
+    (is (= (.getLanguageVersion (org.freeplane.plugin.clojure.ClojureScriptEngineFactory.))
+           (clojure-version)))))
+
+(deftest rama-absent-test
+  (testing "Rama is not on the classpath"
+    (is (thrown? java.io.FileNotFoundException
+                 (require 'com.rpl.rama)))))
