@@ -18,6 +18,7 @@
 package org.freeplane.plugin.clojure;
 
 import java.io.Reader;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import javax.script.AbstractScriptEngine;
 import javax.script.Bindings;
@@ -29,7 +30,16 @@ import javax.script.ScriptEngineFactory;
 import javax.script.ScriptException;
 import javax.script.SimpleBindings;
 
+import clojure.java.api.Clojure;
+import clojure.lang.IFn;
+import clojure.lang.Namespace;
+import clojure.lang.RT;
+import clojure.lang.Symbol;
+import clojure.lang.Var;
+
 public class ClojureScriptEngine extends AbstractScriptEngine implements Compilable {
+
+    private static final String USER_NAMESPACE = "user";
 
     private final ClojureScriptEngineFactory factory;
 
@@ -44,24 +54,34 @@ public class ClojureScriptEngine extends AbstractScriptEngine implements Compila
     @Override
     public Object eval(String script, ScriptContext context) throws ScriptException {
         try {
-            // Get the node from the script context
-            Object node = context.getAttribute("node");
-            Object scriptContext = context.getAttribute("script-context");
-            
-            // Wrap the script in a function that receives node and script-context parameters
-            String wrappedScript = "(fn [node script-context] " + script + ")";
-            
-            // Compile the wrapped script
-            clojure.lang.IFn eval = clojure.java.api.Clojure.var("clojure.core", "eval");
-            clojure.lang.IFn readString = clojure.java.api.Clojure.var("clojure.core", "read-string");
-            Object form = readString.invoke(wrappedScript);
-            clojure.lang.IFn compiledFunction = (clojure.lang.IFn) eval.invoke(form);
-            
-            // Execute the function with the node and script-context parameters
-            return compiledFunction.invoke(node, scriptContext);
+            Map<String, Object> bindings = collectBindings(context);
+            String source = ClojureScriptSource.wrap(script, ClojureScriptSource.bindableNames(bindings.keySet()));
+            Namespace userNamespace = Namespace.findOrCreate(Symbol.intern(USER_NAMESPACE));
+            Var.pushThreadBindings(RT.map(RT.CURRENT_NS, userNamespace));
+            try {
+                Clojure.var("clojure.core", "refer").invoke(Symbol.intern("clojure.core"));
+                Object form = Clojure.var("clojure.core", "read-string").invoke(source);
+                IFn function = (IFn) Clojure.var("clojure.core", "eval").invoke(form);
+                return function.invoke(bindings);
+            } finally {
+                Var.popThreadBindings();
+            }
         } catch (Exception e) {
             throw new ScriptException(e);
         }
+    }
+
+    private static Map<String, Object> collectBindings(ScriptContext context) {
+        Map<String, Object> collected = new LinkedHashMap<String, Object>();
+        Bindings global = context.getBindings(ScriptContext.GLOBAL_SCOPE);
+        if (global != null) {
+            collected.putAll(global);
+        }
+        Bindings engine = context.getBindings(ScriptContext.ENGINE_SCOPE);
+        if (engine != null) {
+            collected.putAll(engine);
+        }
+        return collected;
     }
 
     @Override
