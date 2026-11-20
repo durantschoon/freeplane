@@ -138,4 +138,26 @@ public class ClojureScriptEngineTest {
         Object result = engine.eval("^:keep [1]", context);
         assertThat(clojure.lang.RT.meta(result).toString()).isEqualTo("{:keep true}");
     }
+
+    @Test
+    public void readerEvalKeepsScriptExceptionLine() {
+        assertThatThrownBy(() -> engine.eval(new java.io.StringReader("1\n2\n)"), context))
+                .isInstanceOf(ScriptException.class)
+                .satisfies(e -> assertThat(((ScriptException) e).getLineNumber()).isEqualTo(3));
+    }
+
+    @Test
+    public void readerCompileKeepsScriptExceptionLine() {
+        assertThatThrownBy(() -> engine.compile(new java.io.StringReader("(+ 1")))
+                .isInstanceOf(ScriptException.class)
+                .satisfies(e -> assertThat(((ScriptException) e).getLineNumber()).isGreaterThan(0));
+    }
+
+    @Test
+    public void userNamespaceIsSharedAndReferencesClojureCore() {
+        assertThat(ClojureUserNamespace.get()).isSameAs(ClojureUserNamespace.get());
+        assertThat(ClojureUserNamespace.get().getName().getName()).isEqualTo("user");
+        assertThat(ClojureUserNamespace.get().getMapping(Symbol.intern("inc")).toString())
+                .isEqualTo("#'clojure.core/inc");
+    }
 }
