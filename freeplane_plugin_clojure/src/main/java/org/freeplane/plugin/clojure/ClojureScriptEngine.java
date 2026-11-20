@@ -31,7 +31,9 @@ import javax.script.ScriptException;
 import javax.script.SimpleBindings;
 
 import clojure.java.api.Clojure;
+import clojure.lang.Compiler;
 import clojure.lang.IFn;
+import clojure.lang.Keyword;
 import clojure.lang.Namespace;
 import clojure.lang.RT;
 import clojure.lang.Symbol;
@@ -55,20 +57,31 @@ public class ClojureScriptEngine extends AbstractScriptEngine implements Compila
     public Object eval(String script, ScriptContext context) throws ScriptException {
         try {
             Map<String, Object> bindings = collectBindings(context);
-            String source = ClojureScriptSource.wrap(script, ClojureScriptSource.bindableNames(bindings.keySet()));
             Namespace userNamespace = Namespace.findOrCreate(Symbol.intern(USER_NAMESPACE));
             Var.pushThreadBindings(RT.map(RT.CURRENT_NS, userNamespace));
             try {
                 Clojure.var("clojure.core", "refer").invoke(Symbol.intern("clojure.core"));
-                Object form = Clojure.var("clojure.core", "read-string").invoke(source);
+                Object form = ClojureFunctionForm.of(ClojureScriptReader.readForms(script),
+                        ClojureScriptSource.bindableNames(bindings.keySet()));
                 IFn function = (IFn) Clojure.var("clojure.core", "eval").invoke(form);
                 return function.invoke(bindings);
             } finally {
                 Var.popThreadBindings();
             }
+        } catch (ScriptException e) {
+            throw e;
+        } catch (Compiler.CompilerException e) {
+            ScriptException scriptException = new ScriptException(e.getMessage(), null, lineOf(e));
+            scriptException.initCause(e);
+            throw scriptException;
         } catch (Exception e) {
             throw new ScriptException(e);
         }
+    }
+
+    private static int lineOf(Compiler.CompilerException exception) {
+        Object line = RT.get(exception.getData(), Keyword.intern("clojure.error", "line"));
+        return line instanceof Number ? ((Number) line).intValue() : -1;
     }
 
     private static Map<String, Object> collectBindings(ScriptContext context) {
