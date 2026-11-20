@@ -44,3 +44,11 @@ Final (JDK 25 preamble): compileJava, compileTestJava, `:freeplane_plugin_clojur
 - The wrapper is inside the fn, so script line numbers equal script lines (no offset).
 - `ClojureScriptEngine.eval(Reader)` still wraps any exception (including ScriptException) in a new ScriptException,
   losing the line number; it was not in this stage's scope.
+
+## Coordinator review
+
+- The reviewer's count from the test XML at `66aa58064d` is 28 Clojure plugin tests (Reader 6, Engine 17,
+  FunctionForm 3, Source 1, Runner 1), not the 24 stated under Gate results. After merging with stage 05: 29.
+- Deviation 1 as finally merged: the reader returns non-list `IObj` forms as `(do form)`, with `:line` only on
+  the `do` list (commit `66aa58064d`). An earlier version put `:line` on the user's form and leaked it into
+  returned values; the coordinator found this and sent it back.
