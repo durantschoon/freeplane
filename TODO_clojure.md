@@ -2,8 +2,9 @@
 
 Tracking work to bring Clojure scripting and optional Rama support to upstream-ready state.
 
-**Current state (2026-10-10):** `freeplane_plugin_clojure` compiles and tests pass on
-`upstream/1.13.x`. Clojure execution is
+**Current state (2026-11-20):** Phase 1 done. `freeplane_plugin_clojure` depends only on
+`org.clojure:clojure:1.12.2`, runs through `GenericScript` via JSR-223 with all script bindings
+(`node`, `c`, `logger`, `ui`, ...), and has 16 passing tests. Stage history: `docs/stages/`. Clojure execution is
 intended via JSR-223 (`ClojureScriptEngine` + SPI) through `GenericScript`. Rama is bundled
 into the Clojure plugin as both runtime and demo (`rama_hello.clj`) — that coupling is wrong
 for production. Activator, preferences, and several config properties are stubbed or unused.
@@ -27,7 +28,7 @@ point `JAVA_HOME` at a full JDK and pass
 | Phase | Scope | Sections |
 |---|---|---|
 | 0 — Cleanup | Branch off 1.13.x, drop stashes/old branches, branding out of tree | done |
-| 1 — Correct Clojure plugin | Plain `org.clojure:clojure`, binding fix, single JSR-223 path, build metadata | A0, A1 |
+| 1 — Correct Clojure plugin | Plain `org.clojure:clojure`, binding fix, single JSR-223 path, build metadata | A0, A1 — done (stages 01-02) |
 | 2 — Safety and settings | Safe reading, compile cache decision, preferences + translations | A2 |
 | 3 — Developer experience | Helper ns, proxy-API examples, `.clj` highlighting, GenericScript test, docs | A3, A4 |
 | 4 — Upstream PR | Clojure plugin only, against `1.13.x` | — |
@@ -52,17 +53,17 @@ freeplane_plugin_rama    →  Rama lifecycle + module registry + script facade (
 
 ### A0 — Correctness and integration
 
-- [ ] **Fix binding mismatch in `ClojureScriptEngine`**
+- [x] **Fix binding mismatch in `ClojureScriptEngine`** (stage 02: all ENGINE/GLOBAL bindings that are valid symbols are let-bound; eval in ns `user`)
   - `GenericScript` binds `node` and `c` (controller proxy), not `script-context`.
   - Engine should read `c` first, fall back to `script-context` for compatibility.
   - File: `freeplane_plugin_clojure/.../ClojureScriptEngine.java`
 
-- [ ] **Resolve duplicate execution paths**
+- [x] **Resolve duplicate execution paths** (stage 02: JSR-223 only, `ClojureScript.java` deleted)
   - Choose one: JSR-223 via `GenericScript` (recommended) OR dedicated `ClojureScript` in `ScriptingEngine.compile()`.
   - If JSR-223 only: delete `ClojureScript.java` to avoid two semantics.
   - If dedicated path: wire `.clj` in `ScriptingEngine` like Groovy and remove redundant engine duplication.
 
-- [ ] **Clean stale JARs in plugin lib directory**
+- [x] **Clean stale JARs in plugin lib directory** (stage 01: `copyOSGiJars.doFirst` deletes the lib dir; runs only when the task is not up to date)
   - `copyOSGiJars` appends without cleaning; old `clojure-1.10.3.jar` can coexist with Rama's `clojure-1.12.2.jar`.
   - Clean `BIN/plugins/org.freeplane.plugin.*/lib/` before copy, or delete plugin lib dir on rebuild.
 
@@ -71,24 +72,24 @@ freeplane_plugin_rama    →  Rama lifecycle + module registry + script facade (
 
 ### A1 — Dependencies and build metadata
 
-- [ ] **Use explicit Clojure dependency (decouple from Rama)**
+- [x] **Use explicit Clojure dependency (decouple from Rama)** (stage 01: `org.clojure:clojure:1.12.2`; `rama_hello.clj` kept in private-extensions)
   - Replace `com.rpl:rama` in this module with `org.clojure:clojure` (1.11.x conservative or 1.12.x current).
   - Remove Rama-specific Maven repos from `freeplane_plugin_clojure/build.gradle`.
   - Remove `rama_hello.clj` from shipped scripts; relocate to `freeplane_plugin_rama` examples.
 
-- [ ] **Fix stale `bundleExports`**
+- [x] **Fix stale `bundleExports`** (stage 01)
   - Remove export of deleted package `org.freeplane.plugin.clojure.proxy`.
   - File: `freeplane_plugin_clojure/build.gradle`
 
-- [ ] **Fix broken javadoc task sources**
+- [x] **Fix broken javadoc task sources** (stage 01: javadoc task removed until there is an API to document)
   - References deleted `ClojureScriptBaseClass.java` and `ClojureStaticImports.java`.
   - Point at existing API surface or disable until proxy/helpers exist.
 
-- [ ] **Align reported Clojure version**
+- [x] **Align reported Clojure version** (stage 01: `CLOJURE_VERSION`, checked against `(clojure-version)` in tests)
   - `ClojureScriptEngineFactory.getLanguageVersion()` must match the pinned dependency.
   - Share version constant with tests.
 
-- [ ] **Remove committed `.class` files if any reappear**
+- [x] **Remove committed `.class` files if any reappear** (none on `clojure-plugin`)
   - Feature branch briefly had `.class` files under `src/main/java/`; keep source-only.
 
 ### A2 — Security, caching, and configuration
@@ -128,7 +129,7 @@ freeplane_plugin_rama    →  Rama lifecycle + module registry + script facade (
 
 ### A4 — Clojure testing
 
-- [ ] **Update `ClojureTestRunner` after Rama decoupling**
+- [x] **Update `ClojureTestRunner` after Rama decoupling** (stage 01: Rama tests replaced by a Rama-absent test)
   - Remove Rama load / version assertions from clojure plugin tests.
   - Test Clojure version against explicit dependency only.
 
