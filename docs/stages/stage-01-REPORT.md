@@ -33,6 +33,7 @@ spec.alpha-0.5.238.jar
 4. DoD `git grep -n -i rama -- freeplane_plugin_clojure` is not empty: the mandated `rama-absent-test` must name `com.rpl.rama`. Only test_main.clj matches (lines 14-17).
 5. Deploy "old set": used the actual base deploy (195 jars) plus dummy stale.jar.
 6. Used a scratchpad wrapper script for the Gradle preamble (zsh word-splitting of `$G`); same command.
+7. Changed at coordinator request (second commit): the reflection in deviation 3 was replaced by `(.getLanguageVersion (org.freeplane.plugin.clojure.ClojureScriptEngineFactory.))` in test_main.clj; CLOJURE_VERSION stays package-private. Tests pass (2 tests, 0 failures); break check (constant temporarily "0.0.0") gave 1 failure and JUnit FAILED, reverted and not committed.
 
 ## Open questions
 - Should `CLOJURE_VERSION` be public, or derived from build.gradle, to avoid duplicating "1.12.2"? 
