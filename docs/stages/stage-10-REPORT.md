@@ -41,6 +41,7 @@ Examples moved to `freeplane_plugin_clojure/examples/` and rewritten on `fp`; ol
 3. README says unparsable *found* versions pass with a warning, unparsable *needed* throws IllegalArgumentException,
    per `fences.clj` (the prompt said only "what an unparsable version means").
 4. A blank line was left removed in `build.gradle` after `bundleExports` to avoid a double blank.
+5. A second commit corrected two README statements (script menus, default imports) at coordinator request.
 
 ## Open questions
 - The README states the Scripts menu is under Tools > Scripts and the user directory is the `scripts` dir under

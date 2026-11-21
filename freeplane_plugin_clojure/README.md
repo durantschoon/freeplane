@@ -11,7 +11,18 @@ script machinery as Groovy. The plugin supplies a JSR-223 engine on top of
    directory under the Freeplane user directory
    (`ScriptResources.getUserScriptsDir()` in `freeplane_plugin_script`; the
    `org.freeplane.scripts.user.dir` system property changes the name, default
-   `scripts`). Subdirectories become submenus.
+   `scripts`). Freeplane lists only the files directly in a script directory;
+   subdirectories are not scanned. Besides the user scripts directory it also
+   scans the built-in directory (`scripts` under the installation directory;
+   system property `org.freeplane.builtin.scripts.dir`) and any directories
+   listed in the `script_directories` preference.
+   Menu placement comes from per-script metadata, not from directories: a
+   script file that contains `@ExecutionModes({...})` text with a menu
+   location (see `ScriptingGuiConfiguration.ScriptMetaData`) is placed
+   accordingly, otherwise the script is offered for the selected node. That
+   text is matched against the whole file content, regardless of language, so
+   it should also work in a `;;` comment of a `.clj` file, but this is
+   unverified for Clojure scripts.
 2. Select a node, then choose it from the Scripts menu (Tools > Scripts).
    Freeplane picks the engine from the `.clj` extension.
 3. The script runs with the selected node(s) bound as `node`. Whatever the
@@ -39,8 +50,13 @@ Every script gets these names bound with `let`, so they are plain locals:
 | any other script-context variable | Bound when its name is a valid Clojure symbol; others are skipped. |
 
 Scripts evaluate in the namespace `user`, with `clojure.core` referred and
-`freeplane.script` aliased as `fp`. Nothing else is imported, so use fully
-qualified names or `require` what you need.
+`freeplane.script` aliased as `fp`, and Clojure's default `java.lang` imports
+apply (`Double`, `NumberFormatException`, ...). Other Java classes need a fully
+qualified name. An `(import ...)` at the top of a script does not help: the
+whole script is compiled as one function, so the later class symbols fail to
+resolve ("Syntax error compiling"; observed in a REPL with the same form
+shape). Use `java.util.UUID/randomUUID`, not `(import 'java.util.UUID)`.
+Use `require` for Clojure libraries.
 
 ## The `fp` API
 
