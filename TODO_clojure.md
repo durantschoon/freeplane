@@ -2,9 +2,9 @@
 
 Tracking work to bring Clojure scripting and optional Rama support to upstream-ready state.
 
-**Current state (2026-11-20):** Phases 1-2 done. `freeplane_plugin_clojure` depends only on
+**Current state (2026-11-21):** Phases 1-3 done. `freeplane_plugin_clojure` depends only on
 `org.clojure:clojure:1.12.2`, runs through `GenericScript` via JSR-223 with all script bindings
-(`node`, `c`, `logger`, `ui`, ...), reads scripts safely, compiles once per binding set, and has 38 passing tests. Stage history: `docs/stages/`. Clojure execution is
+(`node`, `c`, `logger`, `ui`, ...), reads scripts safely, compiles once per binding set, auto-aliases the `fp` helper namespace, checks the Clojure floor at load, and has 56 passing tests (plus 30 `clojure.test` tests inside the runner). Stage history: `docs/stages/`. Clojure execution is
 intended via JSR-223 (`ClojureScriptEngine` + SPI) through `GenericScript`. Rama is bundled
 into the Clojure plugin as both runtime and demo (`rama_hello.clj`) — that coupling is wrong
 for production. Activator, preferences, and several config properties are stubbed or unused.
@@ -30,7 +30,7 @@ point `JAVA_HOME` at a full JDK and pass
 | 0 — Cleanup | Branch off 1.13.x, drop stashes/old branches, branding out of tree | done |
 | 1 — Correct Clojure plugin | Plain `org.clojure:clojure`, binding fix, single JSR-223 path, build metadata | A0, A1 — done (stages 01-02) |
 | 2 — Safety and settings | Safe reading, compile cache decision, preferences + translations | A2 — done (stages 03-05) |
-| 3 — Developer experience | Helper ns, proxy-API examples, `.clj` highlighting, GenericScript test, docs | A3, A4 |
+| 3 — Developer experience | Helper ns, proxy-API examples, `.clj` highlighting, GenericScript test, docs | A3, A4 — done (stages 06-10) |
 | 4 — Upstream PR | Clojure plugin only, against `1.13.x` | — |
 | 5 — Rama plugin | Separate optional plugin, managed runtime, module registry, facade | Part B |
 | Later | nREPL, add-on JARs, editor actions | Part C |
@@ -150,20 +150,37 @@ freeplane_plugin_rama    →  Rama lifecycle + module registry + script facade (
 - [ ] Line numbers are exact for top-level forms only; an error deep inside a multi-line form reports the form's line.
 - [ ] The per-script cache of compiled functions is unbounded (one entry per distinct binding-name set; small in practice).
 
+### A3.1 — Follow-ups found in Phase 3
+
+- [ ] **Manual preflight in the running app** (no GUI here). Checklist in `freeplane_plugin_clojure/README.md`:
+  run a script using `fp`, see `println` output, undo a script with one Ctrl+Z, confirm two scripts don't share `def`s,
+  check that a syntax error points at its line, and read `(fp/compatibility c)`. Record results here.
+- [ ] **Measure per-script runtimes in the app.** Each loaded script gets its own Clojure runtime (`ScriptClassLoader`
+  parent can't see Clojure). Startup was ~110-135 ms in a warm JVM (Fable); memory not yet measured.
+- [ ] **`@ExecutionModes` menu placement for `.clj`.** `ScriptMetaData` regex-matches whole file text regardless of
+  language, so a `;;` comment should work. Unverified in the app.
+- [ ] **No same-script `import`.** All forms compile as one fn, so `(import ...)` can't affect later symbols. The guide
+  says to use fully qualified names. A future engine change could hoist leading `ns`/`import`/`require` forms.
+- [ ] **Private tutorials are wrong.** `private-extensions/docs/CLOJURE_TUTORIAL.md` (Clojure formulas, `.setStyle`) and
+  `CLOJURE_ETL_TUTORIAL.md` (`.children`, `.setAttr`) predate `fp`. Rewrite them on `fp` and the README.
+- [ ] **How users get the examples.** They are no longer copied into the Scripts menu; decide whether to ship them in
+  docs, an add-on, or a "copy examples" action.
+- [ ] `attrs` keeps the first value for repeated attribute names; add an all-values variant if needed.
+
 ### A3 — API, examples, and developer experience
 
-- [ ] **Fix example scripts to use proxy API**
+- [x] **Fix example scripts to use proxy API** (stage 10: `examples/{hello,basic,etl_sum}.clj` on `fp`, compiled by `ExamplesCompileTest`; no longer copied into the Scripts menu)
   - Prefer `c` controller and proxy methods over raw Java interop (`.getChildren`, `.getText` on node).
   - Files: `clojure/basic.clj`, `clojure/advanced.clj`, `clojure/hello.clj`
 
-- [ ] **Ship helper namespace**
+- [x] **Ship helper namespace** (stages 07, 09: `freeplane.script`, auto-aliased `fp`; accrete-only; fences in `freeplane.script.fences`, stage 06)
   - Add `freeplane.clojure` (or `freeplane.script`) ns with common requires and idiomatic wrappers.
   - Auto-require in engine wrapper so scripts get same globals as Groovy (`logger`, `ui`, `textUtils`, etc.).
 
-- [ ] **Syntax highlighting for `.clj`**
+- [x] **Syntax highlighting for `.clj`** (dropped: script editor is hard-wired to `text/groovy`; jsyntaxpane dependency removed in stage 10)
   - Register with jsyntaxpane (already a plugin dependency).
 
-- [ ] **Document Clojure scripting**
+- [x] **Document Clojure scripting** (stage 10: `freeplane_plugin_clojure/README.md`)
   - Short guide: bindings (`node`, `c`), menu discovery, `@ExecutionModes` convention, user script dirs.
 
 ### A4 — Clojure testing
@@ -172,7 +189,7 @@ freeplane_plugin_rama    →  Rama lifecycle + module registry + script facade (
   - Remove Rama load / version assertions from clojure plugin tests.
   - Test Clojure version against explicit dependency only.
 
-- [ ] **Add Java integration test via `GenericScript`**
+- [x] **Add Java integration test via `GenericScript`** (stage 08: `ClojureGenericScriptTest`; plus upstream fixes for context variables and in-memory sources)
   - Execute minimal `(+ 1 2)` on `.clj` with mock node; no full Swing/OSGi if avoidable.
 
 ### A5 — Target Clojure module shape

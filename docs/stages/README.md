@@ -28,7 +28,7 @@ G="./gradlew -Porg.gradle.java.installations.auto-detect=false -Porg.gradle.java
 | Java 8 API | `git diff` shows no Java 9+ API or syntax (`Files.readString`, `List.of`, `var`, `String.isBlank`, ...). `-source 8` on JDK 25 does not catch these. |
 
 Baseline (2026-11-20, `350a4a726d`): Clojure plugin 1 JUnit test (wrapping 2 `clojure.test`
-tests) passing; script plugin 99/99 passing. After stages 01-02 (`6442b71fde`): Clojure plugin 16, script plugin 99. After stages 03-05 (`6ef05fc24c`): Clojure plugin 38, script plugin 99.
+tests) passing; script plugin 99/99 passing. After stages 01-02 (`6442b71fde`): Clojure plugin 16, script plugin 99. After stages 03-05 (`6ef05fc24c`): Clojure plugin 38, script plugin 99. After stages 06-10 (`fbe93cd989`): Clojure plugin 56 (+30 `clojure.test` tests in the runner), script plugin 99.
 
 If a Gradle daemon was started with another JDK, run `$G --stop` first.
 
