@@ -38,8 +38,8 @@ point `JAVA_HOME` at a full JDK and pass
 Each phase: extract logic into testable classes first, test it, then wire it in (see `CLAUDE.md`).
 Check fit with upstream 1.13.x scripting additions (MCP, script AI calls) during Phase 1.
 
-**Version fences** (principle for every external dependency we don't control: Clojure, Freeplane's API,
-Rama, other libraries, the JVM). Reviewed by Fable 2026-11-21; a rename to "compatibility fences" is proposed.
+**Compatibility fences** (formerly "version fences"; principle for every external dependency we don't control: Clojure, Freeplane's API,
+Rama, other libraries, the JVM). Reviewed by Fable and renamed 2026-11-21.
 0. *Three numbers per dependency*: floor (minimum supported), built-against, tested-up-to.
 1. *Floor*: checked once at load, against the runtime that will execute the code. On failure, disable only
    ourselves, with a visible reason; never break host startup.
