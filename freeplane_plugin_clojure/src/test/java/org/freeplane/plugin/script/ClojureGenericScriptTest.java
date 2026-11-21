@@ -106,6 +106,21 @@ public class ClojureGenericScriptTest {
         assertThat(run("shared-between-scripts", new ScriptContext(null))).isEqualTo(42L);
     }
 
+    @Test
+    public void fpHelperIsAvailableThroughGenericScript() throws Exception {
+        assertThat(run("(fp/text node)", new ScriptContext(null))).isEqualTo("node text");
+    }
+
+    @Test
+    public void printlnReachesExecuteOutputStream() throws Exception {
+        File cljFile = temporaryFolder.newFile("out.clj");
+        Files.write(cljFile.toPath(), "(println \"out\")".getBytes(StandardCharsets.UTF_8));
+        ByteArrayOutputStream captured = new ByteArrayOutputStream();
+        new GenericScript(cljFile, ScriptingPermissions.getPermissiveScriptingPermissions())
+            .execute(node, new PrintStream(captured), gotoLines::add, new ScriptContext(null));
+        assertThat(captured.toString()).isEqualTo("out" + System.lineSeparator());
+    }
+
     private static class TestResourceController extends ResourceController {
         private final Properties unsecuredProperties = new Properties();
         private final Properties securedProperties = new Properties();
