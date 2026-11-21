@@ -38,6 +38,15 @@ point `JAVA_HOME` at a full JDK and pass
 Each phase: extract logic into testable classes first, test it, then wire it in (see `CLAUDE.md`).
 Check fit with upstream 1.13.x scripting additions (MCP, script AI calls) during Phase 1.
 
+**Version fences** (principle for every external dependency we don't control: Clojure,
+Freeplane's API, Rama, other libraries):
+1. *Floor*: fail fast at load time if the dependency is older than we were built against.
+2. *Gate*: callers can declare a minimum (`(fc/require-clojure "1.12")`, `(fc/require-freeplane "1.13")`),
+   and wrappers around newer APIs check at call time and throw a clear "needs X" error.
+3. *Accrete-only on our side*: our API only grows; a true break gets a new namespace (`...v2`).
+Don't shadow or re-export what we can't control. That gives detection without control, and it breaks
+idiom. Fences catch "too old"; behaviour changes upstream still need pinning and tests.
+
 **Architecture goal:** three layers — Clojure runtime, optional Rama runtime, optional
 mind-map bridge — not one plugin doing everything.
 
