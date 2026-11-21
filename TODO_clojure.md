@@ -44,6 +44,10 @@ Freeplane's API, Rama, other libraries):
 2. *Gate*: callers can declare a minimum (`(fc/require-clojure "1.12")`, `(fc/require-freeplane "1.13")`),
    and wrappers around newer APIs check at call time and throw a clear "needs X" error.
 3. *Accrete-only on our side*: our API only grows; a true break gets a new namespace (`...v2`).
+4. *Known-version table*: data listing specific versions we have evidence about, and which operations
+   to disable on them. Gates consult it and throw "disabled on X because ...". Unknown versions run
+   normally; every entry cites evidence (failing test, upstream issue, changelog); remove entries when
+   they stop applying. Each gotcha we hit becomes an entry plus a test.
 Don't shadow or re-export what we can't control. That gives detection without control, and it breaks
 idiom. Fences catch "too old"; behaviour changes upstream still need pinning and tests.
 
