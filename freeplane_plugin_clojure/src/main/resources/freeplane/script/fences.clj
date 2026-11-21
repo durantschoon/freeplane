@@ -30,6 +30,16 @@
       {:numbers   (vec (take 4 (concat parsed (repeat 0))))
        :qualifier qualifier})))
 
+(defn unparsable?
+  "True when version is not a parsed map and cannot be parsed. Detected runtime
+  versions that are unparsable are treated as unknown, never as an error."
+  [version]
+  (and (not (map? version)) (nil? (parse-version version))))
+
+(defn- sign
+  [n]
+  (cond (neg? n) -1 (pos? n) 1 :else 0))
+
 (defn- ->parsed
   [version]
   (cond
@@ -39,14 +49,15 @@
 
 (defn compare-versions
   "Compares two versions given as strings or parsed maps. Numbers are compared
-  first; with equal numbers any qualifier sorts before no qualifier."
+  first; with equal numbers any qualifier sorts before no qualifier. Returns
+  exactly -1, 0 or 1 and throws IllegalArgumentException on unparsable input."
   [a b]
   (let [{numbers-a :numbers qualifier-a :qualifier} (->parsed a)
         {numbers-b :numbers qualifier-b :qualifier} (->parsed b)
         by-numbers (compare numbers-a numbers-b)]
     (cond
-      (not (zero? by-numbers)) by-numbers
-      (and qualifier-a qualifier-b) (compare qualifier-a qualifier-b)
+      (not (zero? by-numbers)) (sign by-numbers)
+      (and qualifier-a qualifier-b) (sign (compare qualifier-a qualifier-b))
       qualifier-a -1
       qualifier-b 1
       :else 0)))
@@ -62,26 +73,31 @@
            {:fence fence :dependency dependency :found found :needed needed}))
 
 (defn floor-violation
-  "Returns nil when found meets the dependency's supported floor, else an ex-info
-  (returned, not thrown) with data {:fence :floor :dependency :found :needed}."
+  "Returns nil when found meets the dependency's supported floor or is unparsable,
+  else an ex-info (returned, not thrown) with data
+  {:fence :floor :dependency :found :needed}."
   [dependency found]
   (let [floor (get-in supported [dependency :floor])]
-    (when-not (at-least? found floor)
+    (when-not (or (unparsable? found) (at-least? found floor))
       (violation :floor dependency found floor))))
 
 (defn requirement-violation
-  "Returns nil when found meets a caller's declared minimum, else an ex-info
-  (returned, not thrown) with data {:fence :requirement :dependency :found :needed}."
+  "Returns nil when found meets a caller's declared minimum or is unparsable, else
+  an ex-info (returned, not thrown) with data
+  {:fence :requirement :dependency :found :needed}."
   [dependency found needed]
-  (when-not (at-least? found needed)
+  (when-not (or (unparsable? found) (at-least? found needed))
     (violation :requirement dependency found needed)))
 
 (defn newer-than-tested
   "Returns a warning string when found is newer than the dependency's tested-up-to
-  version, else nil. Never a reason to block."
+  version, or an unparsable-version warning, else nil. Never a reason to block."
   [dependency found]
   (let [tested (get-in supported [dependency :tested-up-to])]
-    (when (pos? (compare-versions found tested))
+    (cond
+      (unparsable? found)
+      (str (name dependency) " version " found " is unparsable; relying on capability probes")
+      (pos? (compare-versions found tested))
       (str (name dependency) " " found " is newer than the tested " tested))))
 
 (defn- covers?
@@ -91,9 +107,12 @@
 
 (defn active-quirks
   "Returns the quirks for dependency whose range covers version. The range is
-  inclusive :introduced and exclusive :fixed-in; a nil :fixed-in is open-ended."
+  inclusive :introduced and exclusive :fixed-in; a nil :fixed-in is open-ended.
+  An unparsable version matches nothing."
   [quirks dependency version]
-  (filterv #(and (= dependency (:dependency %)) (covers? % version)) quirks))
+  (if (unparsable? version)
+    []
+    (filterv #(and (= dependency (:dependency %)) (covers? % version)) quirks)))
 
 (defn disabled-violation
   "Returns nil when no active quirk disables op, else an ex-info (returned, not

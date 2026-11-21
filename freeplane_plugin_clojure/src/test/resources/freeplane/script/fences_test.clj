@@ -72,3 +72,24 @@
         open (assoc sample-quirk :id :open :fixed-in nil)]
     (is (= [stale] (f/stale-quirks [stale live open] f/supported))))
   (is (empty? (f/stale-quirks f/quirks f/supported))))
+
+(deftest unparsable-runtime-version-test
+  (is (f/unparsable? "weird-build"))
+  (is (not (f/unparsable? "1.12.2")))
+  (is (nil? (f/floor-violation :clojure "weird-build")))
+  (is (nil? (f/requirement-violation :freeplane "weird-build" "1.13.2")))
+  (is (= "clojure version weird-build is unparsable; relying on capability probes"
+         (f/newer-than-tested :clojure "weird-build")))
+  (is (= [] (f/active-quirks [sample-quirk] :freeplane "weird-build")))
+  (is (nil? (f/disabled-violation [sample-quirk] :freeplane "weird-build" :render))))
+
+(deftest compare-versions-sign-test
+  (is (= -1 (f/compare-versions "1.13.0 alpha" "1.13.0 rc")))
+  (is (= 1 (f/compare-versions "1.13.0 rc" "1.13.0 alpha")))
+  (is (= -1 (f/compare-versions "1.9" "1.12")))
+  (is (= 1 (f/compare-versions "1.12.2" "1.12.2-SNAPSHOT")))
+  (is (= 0 (f/compare-versions "1.13" "1.13.0.0"))))
+
+(deftest literal-misuse-still-throws-test
+  (is (thrown? IllegalArgumentException (f/at-least? "1.12" "x")))
+  (is (thrown? IllegalArgumentException (f/compare-versions "x" "1.12"))))

@@ -37,8 +37,11 @@ Runner output:
 2. Unparsable version input to `compare-versions`/`at-least?` throws `IllegalArgumentException` (prompt is silent).
 3. Two qualified versions with equal numbers compare by qualifier string (prompt is silent).
 4. `disabled-violation` message text and extra data keys (`:dependency :found :op`) are my choice beyond the required `:fence :id :evidence`.
-5. `gradlew` and `gradle/wrapper` copied in per README (gitignored, not committed).
+5. Second commit made at coordinator request: unparsable detected runtime versions never throw from the
+   fence functions (floor/requirement/active-quirks/disabled return nil or []; `newer-than-tested` returns an
+   unparsable warning); `compare-versions` returns exactly -1/0/1; added public `unparsable?`.
+6. `gradlew` and `gradle/wrapper` copied in per README (gitignored, not committed).
 
 ## Open questions
 - Should `plugin-1.13.4.jar` name vs `supported :freeplane :built-against "1.13.4"` be linked by a test? Not in scope.
-- Whether `fences.clj` is packaged into the plugin jar was not checked.
+- Answered: `fences.clj` IS in `plugin-1.13.4.jar` (verified by reviewer).
