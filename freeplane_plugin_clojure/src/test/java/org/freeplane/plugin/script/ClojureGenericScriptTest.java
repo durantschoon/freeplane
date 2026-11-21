@@ -61,6 +61,13 @@ public class ClojureGenericScriptTest {
     }
 
     @Test
+    public void inMemorySourceExecutesThroughStringConstructor() {
+        GenericScript script = new GenericScript("(+ 1 2)", "clj", ScriptingPermissions.getPermissiveScriptingPermissions());
+        Object result = script.execute(node, new PrintStream(new ByteArrayOutputStream()), gotoLines::add, new ScriptContext(null));
+        assertThat(result).isEqualTo(3L);
+    }
+
+    @Test
     public void evaluatesArithmetic() throws Exception {
         assertThat(run("(+ 1 2)", new ScriptContext(null))).isEqualTo(3L);
     }
@@ -89,9 +96,9 @@ public class ClojureGenericScriptTest {
         assertThat(gotoLines).containsExactly(3);
     }
 
-    // Observed: every GenericScript shares one Clojure runtime and one user namespace.
+    // Observed on the test classpath only: every GenericScript shares one Clojure runtime and one user namespace.
     @Test
-    public void defInOneScriptIsVisibleInAnotherBecauseRuntimeIsShared() throws Exception {
+    public void scriptsShareOneClojureRuntimeWhenClojureIsOnTheTestClasspath() throws Exception {
         Object first = run("(System/identityHashCode (class clojure.lang.RT))", new ScriptContext(null));
         Object second = run("(System/identityHashCode (class clojure.lang.RT))", new ScriptContext(null));
         assertThat(first).isEqualTo(second);
