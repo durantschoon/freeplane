@@ -72,6 +72,9 @@ public class GenericScript implements IScript {
         }
 
         public String rereadFile() {
+            if (!isFile()) {
+                return script;
+            }
             cachedFileContent = slurpFile(file);
             return cachedFileContent;
         }
