@@ -65,6 +65,14 @@ Principle: **information, once obtained, is never silently discarded or degraded
 - Probe semantics the tests don't pin down, such as metadata on returned values: stage 03's first version
   passed every test while leaking `:line` metadata into script results.
 - Before a reviewer audits a worktree, make sure no executor is still editing it.
+- Retro at stage 10 (reports 05-08): most deviations came from prompt gaps. Every prompt must state behaviour
+  for invalid or unknown input and the return value of each side-effecting function, or carry an
+  "Unspecified behaviour you must decide and disclose" section.
+- Reviewer probes beyond the enumerated tests found three real bugs (03 metadata leak, 06 unparsable throw,
+  07 dropped build number). Every review prompt includes targeted REPL probes of edge semantics.
+- The Clojure plugin's JUnit count hides `clojure.test` growth (one runner test). Reports give both the XML
+  total and the runner's per-namespace line.
+- Fix requests go back to the original executor as an extra commit (no amend), after its reviewer has finished.
 - At most one in-flight stage touches any shared file (`settings.gradle`, root `build.gradle`,
   `freeplane_plugin_clojure/build.gradle`, `TODO_clojure.md`).
 - Executors commit locally; the coordinator pushes and merges.
