@@ -45,7 +45,7 @@ Blocked conditions did not occur: `freeplane.script` loads under `GenericScript`
 1. `ClojureScriptEngineTest.userNamespaceIsSharedAndReferencesClojureCore` is an existing test; `get()` now declares
    `throws ScriptException`, so the method got `throws Exception` (signature only, assertions unchanged). Needed to compile.
 2. Test 2 checks `fp/children` via `clojure.core/ns-resolve` with the symbol `fp/children`.
-3. The floor-failure cause is a synthesized `IllegalStateException(problem)`, since `startupProblem` returns a String.
+3. Superseded at coordinator request (second commit): the floor-failure cause is now the fences `ex-info` itself, and a failure-path test (isolated class loader with a 99.0.0 floor) was added; Clojure plugin count is now 55.
 4. The failure path (setup throwing) and the floor-failure path in `get()` are not exercised by a test; the holder is one-shot per JVM.
 
 ## Open questions

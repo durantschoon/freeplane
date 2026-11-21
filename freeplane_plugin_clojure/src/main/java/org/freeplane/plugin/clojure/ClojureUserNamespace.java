@@ -47,9 +47,9 @@ final class ClojureUserNamespace {
 
         private static Outcome createUserNamespace() {
             String clojureVersion = (String) Clojure.var("clojure.core", "clojure-version").invoke();
-            String problem = startupProblem(clojureVersion);
-            if (problem != null) {
-                return logged(Outcome.failed(problem, new IllegalStateException(problem)));
+            Throwable violation = floorViolation(clojureVersion);
+            if (violation != null) {
+                return logged(Outcome.failed(violation.getMessage(), violation));
             }
             Object newerThanTested = fencesFunction("newer-than-tested").invoke(Keyword.intern("clojure"), clojureVersion);
             if (newerThanTested != null) {
@@ -87,8 +87,12 @@ final class ClojureUserNamespace {
     }
 
     static String startupProblem(String clojureVersion) {
-        Object violation = fencesFunction("floor-violation").invoke(Keyword.intern("clojure"), clojureVersion);
-        return violation == null ? null : ((Throwable) violation).getMessage();
+        Throwable violation = floorViolation(clojureVersion);
+        return violation == null ? null : violation.getMessage();
+    }
+
+    private static Throwable floorViolation(String clojureVersion) {
+        return (Throwable) fencesFunction("floor-violation").invoke(Keyword.intern("clojure"), clojureVersion);
     }
 
     private static IFn fencesFunction(String name) {
