@@ -11,7 +11,8 @@ import clojure.lang.IPersistentMap;
 public class ClojureTestRunner {
     private static final List<String> TEST_NAMESPACES = Arrays.asList(
             "org.freeplane.plugin.clojure.test-main",
-            "freeplane.script.fences-test");
+            "freeplane.script.fences-test",
+            "freeplane.script-test");
 
     @Test
     public void runClojureTests() {
