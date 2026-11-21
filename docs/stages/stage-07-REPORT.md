@@ -50,6 +50,11 @@ baseline sum of 38 missed `ClojureGenericScriptTest`; the 45 above is from re-su
    `:newer-than-tested`, `:active-quirks`.
 3. `attrs` keeps the first value of a repeated attribute name (prompt silent).
 4. Test 8 also covers `select!` with a non-vector seq, and test 10 adds an rc-vs-"1.13.3" case.
+5. Second commit, made at coordinator request: final Freeplane versions keep `getNum` (`maj.mid.min.num` when num > 0),
+   and `fences.clj` orders qualifiers by letter prefix, then trailing numerals numerically, then full string. `fences.clj`
+   and `fences_test.clj` were allowed for that commit only. The request's "full string as tie-break" conflicts with
+   "RC1 equals rc1", so the tie-break is case-insensitive.
+6. `attrs-test` includes a 12-attribute ordering test (beyond the prompt) guarding array-map ordering past 8 entries.
 
 ## Open questions
 - `attrs` collapses repeated attribute names; a variant returning vectors of all values (`getAll`) may be wanted later.

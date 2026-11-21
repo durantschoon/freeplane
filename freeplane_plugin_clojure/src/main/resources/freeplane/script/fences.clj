@@ -47,6 +47,16 @@
     (parse-version version) (parse-version version)
     :else (throw (IllegalArgumentException. (str "Unparsable version: " (pr-str version))))))
 
+(defn- compare-qualifiers
+  [a b]
+  (let [[_ letters-a suffix-a] (re-matches #"(?s)(.*?)(\d*)" a)
+        [_ letters-b suffix-b] (re-matches #"(?s)(.*?)(\d*)" b)
+        number #(if (str/blank? %) 0 (bigint %))]
+    (or (first (remove zero? [(compare (str/lower-case letters-a) (str/lower-case letters-b))
+                          (compare (number suffix-a) (number suffix-b))
+                          (compare (str/lower-case a) (str/lower-case b))]))
+        0)))
+
 (defn compare-versions
   "Compares two versions given as strings or parsed maps. Numbers are compared
   first; with equal numbers any qualifier sorts before no qualifier. Returns
@@ -57,7 +67,7 @@
         by-numbers (compare numbers-a numbers-b)]
     (cond
       (not (zero? by-numbers)) (sign by-numbers)
-      (and qualifier-a qualifier-b) (sign (compare qualifier-a qualifier-b))
+      (and qualifier-a qualifier-b) (sign (compare-qualifiers qualifier-a qualifier-b))
       qualifier-a -1
       qualifier-b 1
       :else 0)))

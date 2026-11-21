@@ -191,6 +191,10 @@
     (is (nil? (fp/require-freeplane final "1.13.4")))
     (is (= :requirement (:fence (violation-data #(fp/require-freeplane rc "1.13.4")))))
     (is (nil? (fp/require-freeplane rc "1.13.3")))
+    (let [built (controller-with (version-stub 1 13 4 true "" 2))]
+      (is (nil? (fp/require-freeplane built "1.13.4.2")))
+      (is (= :requirement (:fence (violation-data #(fp/require-freeplane built "1.13.4.3")))))
+      (is (= "1.13.4.2" (get-in (fp/compatibility built) [:freeplane :found]))))
     (is (= :requirement (:fence (violation-data #(fp/require-freeplane old "1.13")))))))
 
 (deftest compatibility-test

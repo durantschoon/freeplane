@@ -185,12 +185,12 @@
 
 (defn- freeplane-version-string
   [^FreeplaneVersion version]
-  (let [release (str (.getMaj version) "." (.getMid version) "." (.getMin version))]
+  (let [release (str (.getMaj version) "." (.getMid version) "." (.getMin version))
+        build (.getNum version)]
     (if (.isFinal version)
-      release
+      (if (pos? build) (str release "." build) release)
       (let [type (.getType version)
-            label (if (str/blank? type) "pre" type)
-            build (.getNum version)]
+            label (if (str/blank? type) "pre" type)]
         (str release "-" label (when (pos? build) build))))))
 
 (defn require-clojure

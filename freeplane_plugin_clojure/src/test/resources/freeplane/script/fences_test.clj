@@ -93,3 +93,10 @@
 (deftest literal-misuse-still-throws-test
   (is (thrown? IllegalArgumentException (f/at-least? "1.12" "x")))
   (is (thrown? IllegalArgumentException (f/compare-versions "x" "1.12"))))
+
+(deftest numbered-qualifier-order-test
+  (is (= -1 (f/compare-versions "1.13.4-rc3" "1.13.4-rc10")))
+  (is (= 1 (f/compare-versions "1.13.4-rc10" "1.13.4-rc3")))
+  (is (= -1 (f/compare-versions "1.13.0-alpha2" "1.13.0-beta1")))
+  (is (= 0 (f/compare-versions "1.13.0 RC1" "1.13.0 rc1")))
+  (is (= -1 (f/compare-versions "1.13.0-rc1" "1.13.0"))))
