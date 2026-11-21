@@ -72,6 +72,9 @@ public class GenericScript implements IScript {
         }
 
         public String rereadFile() {
+            if (!isFile()) {
+                return script;
+            }
             cachedFileContent = slurpFile(file);
             return cachedFileContent;
         }
@@ -263,6 +266,9 @@ public class GenericScript implements IScript {
 
     private Bindings createBinding(final NodeModel node, ScriptContext scriptContext) {
         final Bindings binding = engine.createBindings();
+        if (scriptContext != null) {
+            binding.putAll(scriptContext.getBoundVariables());
+        }
         binding.put("c", ProxyFactory.createController(scriptContext));
         binding.put("node", ProxyFactory.createNode(node, scriptContext));
         binding.putAll(ScriptingConfiguration.getStaticProperties());
