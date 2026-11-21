@@ -38,18 +38,34 @@ point `JAVA_HOME` at a full JDK and pass
 Each phase: extract logic into testable classes first, test it, then wire it in (see `CLAUDE.md`).
 Check fit with upstream 1.13.x scripting additions (MCP, script AI calls) during Phase 1.
 
-**Version fences** (principle for every external dependency we don't control: Clojure,
-Freeplane's API, Rama, other libraries):
-1. *Floor*: fail fast at load time if the dependency is older than we were built against.
-2. *Gate*: callers can declare a minimum (`(fc/require-clojure "1.12")`, `(fc/require-freeplane "1.13")`),
-   and wrappers around newer APIs check at call time and throw a clear "needs X" error.
-3. *Accrete-only on our side*: our API only grows; a true break gets a new namespace (`...v2`).
-4. *Known-version table*: data listing specific versions we have evidence about, and which operations
-   to disable on them. Gates consult it and throw "disabled on X because ...". Unknown versions run
-   normally; every entry cites evidence (failing test, upstream issue, changelog); remove entries when
-   they stop applying. Each gotcha we hit becomes an entry plus a test.
-Don't shadow or re-export what we can't control. That gives detection without control, and it breaks
-idiom. Fences catch "too old"; behaviour changes upstream still need pinning and tests.
+**Version fences** (principle for every external dependency we don't control: Clojure, Freeplane's API,
+Rama, other libraries, the JVM). Reviewed by Fable 2026-11-21; a rename to "compatibility fences" is proposed.
+0. *Three numbers per dependency*: floor (minimum supported), built-against, tested-up-to.
+1. *Floor*: checked once at load, against the runtime that will execute the code. On failure, disable only
+   ourselves, with a visible reason; never break host startup.
+2. *Gate*:
+   - Probe capabilities first, e.g. `(resolve 'clojure.core/parse-long)` or does the method exist; bind wrappers once.
+   - Use version numbers only where people think in versions (`(fp/require-clojure "1.12")`,
+     `(fp/require-freeplane c "1.13")`) or where behaviour can't be probed.
+3. *Accrete-only on our side*: our API only grows, error data included. Deprecate with a one-time warning and
+   never remove; a true break gets a new namespace (`...v2`).
+4. *Known-version (quirks) table*: version *ranges* (`:introduced`, `:fixed-in`) per evidence-backed issue,
+   listing operations to disable. Each entry has a test. A CI check fails on stale entries (fixed at or below the floor).
+5. *Tested-up-to*: newer than tested means warn once, never block. Unknown versions inside the range run silently.
+6. *Observable and overridable*: structured `ex-info` errors (`:fence :dependency :found :needed :evidence`),
+   a diagnostics call, one log line per fence that fires, and a user override.
+
+Parse versions numerically, and order pre-releases/SNAPSHOTs before their release. Freeplane's `compareTo`
+ignores the release type; use `isFinal()`. Degrade only when the result would be identical; otherwise fail, at
+load rather than mid-render. Don't shadow or re-export what we can't control.
+
+**Phase 3 decisions (human, 2026-11-21):**
+- Keep one Clojure runtime per script, and measure it.
+- Fix `GenericScript` to pass script-context variables (`args` etc.), as its own commit.
+- Drop `.clj` highlighting, the jsyntaxpane dependency, and copying examples into the Scripts menu.
+- The helper namespace is `freeplane.script`, aliased `fp`. It takes explicit `node`/`c`, and writes only through
+  `org.freeplane.api` (never `getDelegate()`).
+- Clojure cannot be used for formulas; they are Groovy-only.
 
 **Architecture goal:** three layers — Clojure runtime, optional Rama runtime, optional
 mind-map bridge — not one plugin doing everything.
