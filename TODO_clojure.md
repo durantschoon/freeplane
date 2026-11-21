@@ -2,9 +2,9 @@
 
 Tracking work to bring Clojure scripting and optional Rama support to upstream-ready state.
 
-**Current state (2026-11-20):** Phase 1 done. `freeplane_plugin_clojure` depends only on
+**Current state (2026-11-20):** Phases 1-2 done. `freeplane_plugin_clojure` depends only on
 `org.clojure:clojure:1.12.2`, runs through `GenericScript` via JSR-223 with all script bindings
-(`node`, `c`, `logger`, `ui`, ...), and has 16 passing tests. Stage history: `docs/stages/`. Clojure execution is
+(`node`, `c`, `logger`, `ui`, ...), reads scripts safely, compiles once per binding set, and has 38 passing tests. Stage history: `docs/stages/`. Clojure execution is
 intended via JSR-223 (`ClojureScriptEngine` + SPI) through `GenericScript`. Rama is bundled
 into the Clojure plugin as both runtime and demo (`rama_hello.clj`) — that coupling is wrong
 for production. Activator, preferences, and several config properties are stubbed or unused.
@@ -29,7 +29,7 @@ point `JAVA_HOME` at a full JDK and pass
 |---|---|---|
 | 0 — Cleanup | Branch off 1.13.x, drop stashes/old branches, branding out of tree | done |
 | 1 — Correct Clojure plugin | Plain `org.clojure:clojure`, binding fix, single JSR-223 path, build metadata | A0, A1 — done (stages 01-02) |
-| 2 — Safety and settings | Safe reading, compile cache decision, preferences + translations | A2 |
+| 2 — Safety and settings | Safe reading, compile cache decision, preferences + translations | A2 — done (stages 03-05) |
 | 3 — Developer experience | Helper ns, proxy-API examples, `.clj` highlighting, GenericScript test, docs | A3, A4 |
 | 4 — Upstream PR | Clojure plugin only, against `1.13.x` | — |
 | 5 — Rama plugin | Separate optional plugin, managed runtime, module registry, facade | Part B |
@@ -94,22 +94,32 @@ freeplane_plugin_rama    →  Rama lifecycle + module registry + script facade (
 
 ### A2 — Security, caching, and configuration
 
-- [ ] **Use safe reading instead of bare `read-string`**
+- [x] **Use safe reading instead of bare `read-string`** (stage 03: every form read with `*read-eval*` false; stray parens are errors; error lines reach the script editor)
   - Wrapped script eval uses `clojure.core/read-string` (reader macros, injection risk).
   - Prefer `load-string` with `*read-eval*` false or `clojure.tools.reader` with `:read-eval false`.
 
-- [ ] **Implement or drop `Compilable`**
+- [x] **Implement or drop `Compilable`** (stage 04: implemented; compiled once per binding-name set, syntax errors at compile time; `user` ns set up once)
   - `ClojureCompiledScript.eval()` re-runs full eval; no real compile cache.
   - Either compile once to `IFn` and reuse, or remove `Compilable` and document interpret-on-run.
 
-- [ ] **Wire preferences and defaults**
+- [x] **Wire preferences and defaults** (stage 05: removed; no key was read, and each duplicated `GenericScript` or described ClojureScript; Activator emptied)
   - `defaults.properties` and `preferences.xml` exist but nothing reads them.
   - `Activator` has TODOs; restore minimal `ClojurePluginRegistration`:
     - load defaults into option panel (mirror `ScriptingRegistration.addPropertiesToOptionPanel()`)
     - honor or remove: `clojure_script_enabled`, `clojure_script_cache_size`, `clojure_script_timeout`, `clojure_script_security_enabled`
 
-- [ ] **Add translation keys**
+- [x] **Add translation keys** (not needed after stage 05)
   - `plugins/Clojure/...` keys in `preferences.xml` need entries in `Resources_en.properties` (and format_translation).
+
+### A2.1 — Follow-ups found in Phases 1-2
+
+- [ ] **Stale jars still reach the plugin lib dir.** The root `copyOSGiJars` copies `build/libs/*.jar` except the
+  current version, so an old `freeplane_plugin_clojure-<old>.jar` left in `build/libs` is redeployed (seen
+  2026-11-20; fixed locally with `:freeplane_plugin_clojure:clean`). The plugin's `doFirst` delete also skips when
+  the task is up to date. The same exclude affects every plugin (`BIN/plugins/org.freeplane.plugin.script/lib/` has
+  a stale `plugin-1.12.15.jar`); consider raising upstream instead of patching it in this plugin.
+- [ ] Line numbers are exact for top-level forms only; an error deep inside a multi-line form reports the form's line.
+- [ ] The per-script cache of compiled functions is unbounded (one entry per distinct binding-name set; small in practice).
 
 ### A3 — API, examples, and developer experience
 

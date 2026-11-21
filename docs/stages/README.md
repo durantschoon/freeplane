@@ -28,7 +28,7 @@ G="./gradlew -Porg.gradle.java.installations.auto-detect=false -Porg.gradle.java
 | Java 8 API | `git diff` shows no Java 9+ API or syntax (`Files.readString`, `List.of`, `var`, `String.isBlank`, ...). `-source 8` on JDK 25 does not catch these. |
 
 Baseline (2026-11-20, `350a4a726d`): Clojure plugin 1 JUnit test (wrapping 2 `clojure.test`
-tests) passing; script plugin 99/99 passing. After stages 01-02 (`6442b71fde`): Clojure plugin 16, script plugin 99.
+tests) passing; script plugin 99/99 passing. After stages 01-02 (`6442b71fde`): Clojure plugin 16, script plugin 99. After stages 03-05 (`6ef05fc24c`): Clojure plugin 38, script plugin 99.
 
 If a Gradle daemon was started with another JDK, run `$G --stop` first.
 
@@ -61,6 +61,10 @@ Principle: **information, once obtained, is never silently discarded or degraded
   message must name the base commit and tell the executor to branch from it.
 - Don't make a constant package-private when Clojure test code must read it; Clojure interop
   only sees public members (stage 01 needed a follow-up commit for this).
+- Report test counts only from the test-result XML after `cleanTest` (stage 03's report had a wrong count).
+- Probe semantics the tests don't pin down, such as metadata on returned values: stage 03's first version
+  passed every test while leaking `:line` metadata into script results.
+- Before a reviewer audits a worktree, make sure no executor is still editing it.
 - At most one in-flight stage touches any shared file (`settings.gradle`, root `build.gradle`,
   `freeplane_plugin_clojure/build.gradle`, `TODO_clojure.md`).
 - Executors commit locally; the coordinator pushes and merges.
