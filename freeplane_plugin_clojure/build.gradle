@@ -1,7 +1,6 @@
 dependencies {
     implementation project(':freeplane')
     implementation project(':freeplane_plugin_script')
-    implementation project(':freeplane_plugin_jsyntaxpane')
     
     lib 'org.clojure:clojure:1.12.2'
 }
@@ -11,22 +10,14 @@ tasks.withType(JavaCompile) {
         options.compilerArgs << '-parameters'
 }
 
-ext.bundleImports = 'org.freeplane.plugin.script.*, org.freeplane.plugin.jsyntaxpane.*'
+ext.bundleImports = 'org.freeplane.plugin.script.*'
 
 ext.bundleExports = """\
              org.freeplane.plugin.clojure
              """
 
-task copyClojureScripts(type: Copy) {
-    from('src/main/resources/org/freeplane/plugin/clojure/clojure/') {
-        include('*.clj')
-    }
-    into(globalBin + '/scripts')
-}
-
-build.dependsOn copyClojureScripts
-
 test {
+    systemProperty 'clojure.examples.dir', file('examples').absolutePath
     testLogging {
         events "passed", "skipped", "failed", "standardOut", "standardError"
         exceptionFormat "full" 
