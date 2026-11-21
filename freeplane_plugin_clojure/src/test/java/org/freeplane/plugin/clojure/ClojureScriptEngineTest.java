@@ -154,10 +154,48 @@ public class ClojureScriptEngineTest {
     }
 
     @Test
-    public void userNamespaceIsSharedAndReferencesClojureCore() {
+    public void userNamespaceIsSharedAndReferencesClojureCore() throws Exception {
         assertThat(ClojureUserNamespace.get()).isSameAs(ClojureUserNamespace.get());
         assertThat(ClojureUserNamespace.get().getName().getName()).isEqualTo("user");
         assertThat(ClojureUserNamespace.get().getMapping(Symbol.intern("inc")).toString())
                 .isEqualTo("#'clojure.core/inc");
+    }
+
+    @Test
+    public void fpAliasIsAvailableToScripts() throws Exception {
+        org.freeplane.api.Node node = org.mockito.Mockito.mock(org.freeplane.api.Node.class);
+        org.mockito.Mockito.when(node.getText()).thenReturn("t");
+        context.setAttribute("node", node, ScriptContext.ENGINE_SCOPE);
+        assertThat(engine.eval("(fp/text node)", context)).isEqualTo("t");
+    }
+
+    @Test
+    public void printlnWritesToContextWriter() throws Exception {
+        java.io.StringWriter out = new java.io.StringWriter();
+        context.setWriter(out);
+        engine.eval("(println \"hello\")", context);
+        assertThat(out.toString()).isEqualTo("hello" + System.lineSeparator());
+    }
+
+    @Test
+    public void errWritesToContextErrorWriter() throws Exception {
+        java.io.StringWriter err = new java.io.StringWriter();
+        context.setErrorWriter(err);
+        engine.eval("(binding [*out* *err*] (println \"oops\"))", context);
+        assertThat(err.toString()).isEqualTo("oops" + System.lineSeparator());
+    }
+
+    @Test
+    public void outputIsFlushedWhenScriptReturnsBeforeNewline() throws Exception {
+        java.io.StringWriter out = new java.io.StringWriter();
+        context.setWriter(out);
+        assertThat(engine.eval("(print \"a\") 1", context)).isEqualTo(1L);
+        assertThat(out.toString()).isEqualTo("a");
+    }
+
+    @Test
+    public void scriptMayDefineVarNamedLikeHelperFunction() throws Exception {
+        assertThat(engine.eval("(def children 1) children", context)).isEqualTo(1L);
+        assertThat(engine.eval("(some? (resolve 'fp/children))", context)).isEqualTo(Boolean.TRUE);
     }
 }
